@@ -10,11 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PortalScriptsRouteImport } from './routes/portal.scripts'
+import { Route as PortalMeetingsRouteImport } from './routes/portal.meetings'
+import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
+import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
+import { Route as PortalCallsRouteImport } from './routes/portal.calls'
+import { Route as PortalBillingRouteImport } from './routes/portal.billing'
 import { Route as AdminScriptsRouteImport } from './routes/admin.scripts'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
@@ -22,6 +30,11 @@ import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HowItWorksRoute = HowItWorksRouteImport.update({
@@ -44,10 +57,45 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const PortalScriptsRoute = PortalScriptsRouteImport.update({
+  id: '/scripts',
+  path: '/scripts',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalMeetingsRoute = PortalMeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalLeadsRoute = PortalLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalCampaignsRoute = PortalCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalCallsRoute = PortalCallsRouteImport.update({
+  id: '/calls',
+  path: '/calls',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalBillingRoute = PortalBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => PortalRoute,
 } as any)
 const AdminScriptsRoute = AdminScriptsRouteImport.update({
   id: '/scripts',
@@ -70,11 +118,19 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/portal': typeof PortalRouteWithChildren
   '/pricing': typeof PricingRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/portal/billing': typeof PortalBillingRoute
+  '/portal/calls': typeof PortalCallsRoute
+  '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/leads': typeof PortalLeadsRoute
+  '/portal/meetings': typeof PortalMeetingsRoute
+  '/portal/scripts': typeof PortalScriptsRoute
   '/admin/': typeof AdminIndexRoute
+  '/portal/': typeof PortalIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,7 +140,14 @@ export interface FileRoutesByTo {
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/portal/billing': typeof PortalBillingRoute
+  '/portal/calls': typeof PortalCallsRoute
+  '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/leads': typeof PortalLeadsRoute
+  '/portal/meetings': typeof PortalMeetingsRoute
+  '/portal/scripts': typeof PortalScriptsRoute
   '/admin': typeof AdminIndexRoute
+  '/portal': typeof PortalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -92,11 +155,19 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/portal': typeof PortalRouteWithChildren
   '/pricing': typeof PricingRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/portal/billing': typeof PortalBillingRoute
+  '/portal/calls': typeof PortalCallsRoute
+  '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/leads': typeof PortalLeadsRoute
+  '/portal/meetings': typeof PortalMeetingsRoute
+  '/portal/scripts': typeof PortalScriptsRoute
   '/admin/': typeof AdminIndexRoute
+  '/portal/': typeof PortalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,11 +176,19 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/how-it-works'
+    | '/portal'
     | '/pricing'
     | '/admin/billing'
     | '/admin/clients'
     | '/admin/scripts'
+    | '/portal/billing'
+    | '/portal/calls'
+    | '/portal/campaigns'
+    | '/portal/leads'
+    | '/portal/meetings'
+    | '/portal/scripts'
     | '/admin/'
+    | '/portal/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,18 +198,33 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/clients'
     | '/admin/scripts'
+    | '/portal/billing'
+    | '/portal/calls'
+    | '/portal/campaigns'
+    | '/portal/leads'
+    | '/portal/meetings'
+    | '/portal/scripts'
     | '/admin'
+    | '/portal'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/contact'
     | '/how-it-works'
+    | '/portal'
     | '/pricing'
     | '/admin/billing'
     | '/admin/clients'
     | '/admin/scripts'
+    | '/portal/billing'
+    | '/portal/calls'
+    | '/portal/campaigns'
+    | '/portal/leads'
+    | '/portal/meetings'
+    | '/portal/scripts'
     | '/admin/'
+    | '/portal/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -138,6 +232,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  PortalRoute: typeof PortalRouteWithChildren
   PricingRoute: typeof PricingRoute
 }
 
@@ -148,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-it-works': {
@@ -178,12 +280,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/portal/scripts': {
+      id: '/portal/scripts'
+      path: '/scripts'
+      fullPath: '/portal/scripts'
+      preLoaderRoute: typeof PortalScriptsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/meetings': {
+      id: '/portal/meetings'
+      path: '/meetings'
+      fullPath: '/portal/meetings'
+      preLoaderRoute: typeof PortalMeetingsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/leads': {
+      id: '/portal/leads'
+      path: '/leads'
+      fullPath: '/portal/leads'
+      preLoaderRoute: typeof PortalLeadsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/campaigns': {
+      id: '/portal/campaigns'
+      path: '/campaigns'
+      fullPath: '/portal/campaigns'
+      preLoaderRoute: typeof PortalCampaignsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/calls': {
+      id: '/portal/calls'
+      path: '/calls'
+      fullPath: '/portal/calls'
+      preLoaderRoute: typeof PortalCallsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/billing': {
+      id: '/portal/billing'
+      path: '/billing'
+      fullPath: '/portal/billing'
+      preLoaderRoute: typeof PortalBillingRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/admin/scripts': {
       id: '/admin/scripts'
@@ -225,13 +376,47 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface PortalRouteChildren {
+  PortalBillingRoute: typeof PortalBillingRoute
+  PortalCallsRoute: typeof PortalCallsRoute
+  PortalCampaignsRoute: typeof PortalCampaignsRoute
+  PortalLeadsRoute: typeof PortalLeadsRoute
+  PortalMeetingsRoute: typeof PortalMeetingsRoute
+  PortalScriptsRoute: typeof PortalScriptsRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalBillingRoute: PortalBillingRoute,
+  PortalCallsRoute: PortalCallsRoute,
+  PortalCampaignsRoute: PortalCampaignsRoute,
+  PortalLeadsRoute: PortalLeadsRoute,
+  PortalMeetingsRoute: PortalMeetingsRoute,
+  PortalScriptsRoute: PortalScriptsRoute,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
   HowItWorksRoute: HowItWorksRoute,
+  PortalRoute: PortalRouteWithChildren,
   PricingRoute: PricingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
