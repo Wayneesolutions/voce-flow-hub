@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { AuthProvider } from "../context/auth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -78,17 +79,37 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "VoCallM — AI sales agents that book qualified meetings" },
-      { name: "description", content: "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically." },
+      {
+        name: "description",
+        content:
+          "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically.",
+      },
       { name: "author", content: "Wayne Solutions" },
       { property: "og:title", content: "VoCallM — AI sales agents that book qualified meetings" },
-      { property: "og:description", content: "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically." },
+      {
+        property: "og:description",
+        content:
+          "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "VoCallM — AI sales agents that book qualified meetings" },
-      { name: "twitter:description", content: "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/729eb73b-68d5-47d5-a453-3941356284fc/id-preview-8b3b102c--9f7fcb1f-3af1-4ec6-8495-cd99478b78b7.lovable.app-1780912222823.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/729eb73b-68d5-47d5-a453-3941356284fc/id-preview-8b3b102c--9f7fcb1f-3af1-4ec6-8495-cd99478b78b7.lovable.app-1780912222823.png" },
+      {
+        name: "twitter:description",
+        content:
+          "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/729eb73b-68d5-47d5-a453-3941356284fc/id-preview-8b3b102c--9f7fcb1f-3af1-4ec6-8495-cd99478b78b7.lovable.app-1780912222823.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/729eb73b-68d5-47d5-a453-3941356284fc/id-preview-8b3b102c--9f7fcb1f-3af1-4ec6-8495-cd99478b78b7.lovable.app-1780912222823.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -125,8 +146,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

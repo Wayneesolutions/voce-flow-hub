@@ -15,7 +15,9 @@ export function StatCard({ label, value, delta, hint, icon }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-center justify-between">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
         {icon && <span className="text-muted-foreground">{icon}</span>}
       </div>
       <div className="mt-2 text-2xl font-semibold tracking-tight">{value}</div>
@@ -28,7 +30,8 @@ export function StatCard({ label, value, delta, hint, icon }: Props) {
             )}
           >
             {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-            {up ? "+" : ""}{delta}%
+            {up ? "+" : ""}
+            {delta}%
           </span>
         )}
         {hint && <span className="text-muted-foreground">{hint}</span>}

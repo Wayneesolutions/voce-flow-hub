@@ -22,7 +22,8 @@ export function DashboardSidebar({ brand, items, footer }: Props) {
   const Nav = (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
       {items.map((item) => {
-        const active = pathname === item.to || (item.to !== "/" && pathname.startsWith(item.to + "/"));
+        const active =
+          pathname === item.to || (item.to !== "/" && pathname.startsWith(item.to + "/"));
         return (
           <Link
             key={item.to}
@@ -53,7 +54,9 @@ export function DashboardSidebar({ brand, items, footer }: Props) {
       </span>
       <div className="min-w-0">
         <div className="text-sm font-semibold text-white truncate">{brand.name}</div>
-        {brand.subtitle && <div className="text-[11px] text-sidebar-foreground truncate">{brand.subtitle}</div>}
+        {brand.subtitle && (
+          <div className="text-[11px] text-sidebar-foreground truncate">{brand.subtitle}</div>
+        )}
       </div>
     </div>
   );
@@ -71,7 +74,11 @@ export function DashboardSidebar({ brand, items, footer }: Props) {
           </span>
           {brand.name}
         </div>
-        <button onClick={() => setOpen(true)} className="p-2 rounded-md hover:bg-secondary" aria-label="Open menu">
+        <button
+          onClick={() => setOpen(true)}
+          className="p-2 rounded-md hover:bg-secondary"
+          aria-label="Open menu"
+        >
           <Menu className="h-5 w-5" />
         </button>
       </div>
@@ -89,7 +96,10 @@ export function DashboardSidebar({ brand, items, footer }: Props) {
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="relative flex flex-col w-72 bg-sidebar text-sidebar-foreground">
             <div className="absolute right-3 top-3">
-              <button onClick={() => setOpen(false)} className="p-2 rounded-md text-white/80 hover:bg-white/10">
+              <button
+                onClick={() => setOpen(false)}
+                className="p-2 rounded-md text-white/80 hover:bg-white/10"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>

@@ -27,7 +27,9 @@ export function DashboardShell({ sidebar, title, subtitle, actions, children }: 
               <Bell className="h-4 w-4" />
               <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-destructive" />
             </button>
-            <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center text-xs font-medium">WS</div>
+            <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center text-xs font-medium">
+              WS
+            </div>
           </div>
         </header>
         <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">

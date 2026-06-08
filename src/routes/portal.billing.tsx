@@ -10,7 +10,10 @@ export const Route = createFileRoute("/portal/billing")({
 });
 
 const weekly = [
-  { w: "W1", min: 240 }, { w: "W2", min: 310 }, { w: "W3", min: 295 }, { w: "W4", min: 355 },
+  { w: "W1", min: 240 },
+  { w: "W2", min: 310 },
+  { w: "W3", min: 295 },
+  { w: "W4", min: 355 },
 ];
 
 const invoices = [
@@ -23,10 +26,31 @@ function PortalBilling() {
   return (
     <DashboardShell sidebar={null} title="Billing" subtitle="Usage and invoices">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Minutes used (MTD)" value="1,200" icon={<Timer className="h-4 w-4"/>} delta={9}/>
-        <StatCard label="Calls made" value="342" icon={<PhoneCall className="h-4 w-4"/>} delta={12}/>
-        <StatCard label="Amount billed" value="$1,800" icon={<DollarSign className="h-4 w-4"/>} delta={9} hint="@ $1.50/min"/>
-        <StatCard label="Next invoice" value="Jul 1" icon={<Receipt className="h-4 w-4"/>} hint="auto-charge"/>
+        <StatCard
+          label="Minutes used (MTD)"
+          value="1,200"
+          icon={<Timer className="h-4 w-4" />}
+          delta={9}
+        />
+        <StatCard
+          label="Calls made"
+          value="342"
+          icon={<PhoneCall className="h-4 w-4" />}
+          delta={12}
+        />
+        <StatCard
+          label="Amount billed"
+          value="$1,800"
+          icon={<DollarSign className="h-4 w-4" />}
+          delta={9}
+          hint="@ $1.50/min"
+        />
+        <StatCard
+          label="Next invoice"
+          value="Jul 1"
+          icon={<Receipt className="h-4 w-4" />}
+          hint="auto-charge"
+        />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -35,11 +59,18 @@ function PortalBilling() {
           <div className="h-64 mt-4">
             <ResponsiveContainer>
               <BarChart data={weekly} margin={{ left: -10, right: 8 }}>
-                <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" vertical={false}/>
-                <XAxis dataKey="w" tickLine={false} axisLine={false} tick={{fontSize:12,fill:"#64748b"}}/>
-                <YAxis tickLine={false} axisLine={false} tick={{fontSize:12,fill:"#64748b"}}/>
-                <Tooltip contentStyle={{fontSize:12,borderRadius:8,border:"1px solid #E5E7EB"}}/>
-                <Bar dataKey="min" fill="#2E86DE" radius={[4,4,0,0]}/>
+                <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="w"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12, fill: "#64748b" }}
+                />
+                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }}
+                />
+                <Bar dataKey="min" fill="#2E86DE" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -50,7 +81,9 @@ function PortalBilling() {
             <div className="text-sm font-medium">Visa •••• 4242</div>
             <div className="text-xs text-muted-foreground">Expires 08/28</div>
           </div>
-          <button className="mt-3 w-full h-9 rounded-md border border-border text-sm hover:bg-secondary">Update card</button>
+          <button className="mt-3 w-full h-9 rounded-md border border-border text-sm hover:bg-secondary">
+            Update card
+          </button>
         </div>
       </div>
 
@@ -58,16 +91,29 @@ function PortalBilling() {
         <div className="p-5 border-b border-border font-semibold">Invoices</div>
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-            <tr><th className="text-left font-medium px-5 py-2.5">Invoice</th><th className="text-left font-medium px-3 py-2.5">Month</th><th className="text-right font-medium px-3 py-2.5">Minutes</th><th className="text-right font-medium px-3 py-2.5">Amount</th><th className="text-right font-medium px-5 py-2.5"></th></tr>
+            <tr>
+              <th className="text-left font-medium px-5 py-2.5">Invoice</th>
+              <th className="text-left font-medium px-3 py-2.5">Month</th>
+              <th className="text-right font-medium px-3 py-2.5">Minutes</th>
+              <th className="text-right font-medium px-3 py-2.5">Amount</th>
+              <th className="text-right font-medium px-5 py-2.5"></th>
+            </tr>
           </thead>
           <tbody>
-            {invoices.map(i=>(
+            {invoices.map((i) => (
               <tr key={i.id} className="border-t border-border hover:bg-muted/30">
                 <td className="px-5 py-3 font-medium">{i.id}</td>
                 <td className="px-3 py-3 text-muted-foreground">{i.month}</td>
                 <td className="px-3 py-3 text-right tabular-nums">{i.min.toLocaleString()}</td>
-                <td className="px-3 py-3 text-right tabular-nums font-medium">${i.amount.toLocaleString()}</td>
-                <td className="px-5 py-3 text-right"><button className="text-accent text-xs hover:underline inline-flex items-center gap-1"><Download className="h-3.5 w-3.5"/>PDF</button></td>
+                <td className="px-3 py-3 text-right tabular-nums font-medium">
+                  ${i.amount.toLocaleString()}
+                </td>
+                <td className="px-5 py-3 text-right">
+                  <button className="text-accent text-xs hover:underline inline-flex items-center gap-1">
+                    <Download className="h-3.5 w-3.5" />
+                    PDF
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

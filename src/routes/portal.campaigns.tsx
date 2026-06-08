@@ -1,52 +1,222 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { Plus, Play, Pause } from "lucide-react";
+import { campaignApi } from "@/lib/api";
+import type { CampaignSettings } from "@/lib/types";
+import { Save, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/portal/campaigns")({
   head: () => ({ meta: [{ title: "Campaigns · Client Portal" }] }),
   component: Campaigns,
 });
 
-const campaigns = [
-  { name: "Toronto Realtors Q2", script: "Realtor Outreach v2", hours: "9 AM – 5 PM", tz: "America/Toronto", retries: 3, status: "active", calls: 248, booked: 18 },
-  { name: "GTA Plumbing Estimates", script: "Plumbing Spring Promo", hours: "8 AM – 6 PM", tz: "America/Toronto", retries: 3, status: "active", calls: 412, booked: 32 },
-  { name: "Dubai SaaS Demo", script: "B2B SaaS Demos", hours: "10 AM – 7 PM", tz: "Asia/Dubai", retries: 2, status: "paused", calls: 96, booked: 6 },
+const TIMEZONES = [
+  "America/New_York",
+  "America/Toronto",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Asia/Dubai",
+  "UTC",
 ];
 
 function Campaigns() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["campaign-settings"],
+    queryFn: () => campaignApi.get(),
+  });
+
+  const [form, setForm] = useState<Partial<CampaignSettings>>({});
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (data) setForm(data);
+  }, [data]);
+
+  const mutation = useMutation({
+    mutationFn: (values: Partial<CampaignSettings>) => campaignApi.update(values),
+    onSuccess: (updated) => {
+      qc.setQueryData(["campaign-settings"], updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
+  const set = <K extends keyof CampaignSettings>(key: K, value: CampaignSettings[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  if (isLoading) {
+    return (
+      <DashboardShell sidebar={null} title="Campaigns" subtitle="Active dialing campaigns">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading settings…
+        </div>
+      </DashboardShell>
+    );
+  }
+
   return (
-    <DashboardShell sidebar={null} title="Campaigns" subtitle="Active dialing campaigns"
-      actions={<button className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4"/>New campaign</button>}>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {campaigns.map((c)=>(
-          <div key={c.name} className="rounded-lg border border-border bg-card p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-semibold">{c.name}</div>
-                <div className="text-xs text-muted-foreground">{c.script}</div>
-              </div>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${c.status==="active"?"bg-success/10 text-success":"bg-muted text-muted-foreground"}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${c.status==="active"?"bg-success animate-pulse":"bg-muted-foreground"}`}/>{c.status}
-              </span>
-            </div>
-            <dl className="grid grid-cols-3 gap-3 mt-5 text-sm">
-              <div><dt className="text-xs text-muted-foreground">Hours</dt><dd className="font-medium">{c.hours}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">Timezone</dt><dd className="font-medium">{c.tz}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">Retries</dt><dd className="font-medium">{c.retries}</dd></div>
-            </dl>
-            <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-border">
-              <div><div className="text-xs text-muted-foreground">Calls made</div><div className="text-xl font-semibold tabular-nums">{c.calls}</div></div>
-              <div><div className="text-xs text-muted-foreground">Meetings booked</div><div className="text-xl font-semibold tabular-nums text-success">{c.booked}</div></div>
-            </div>
-            <div className="mt-5 flex items-center gap-2">
-              <button className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md border border-border text-sm hover:bg-secondary">
-                {c.status==="active"?<><Pause className="h-3.5 w-3.5"/>Pause</>:<><Play className="h-3.5 w-3.5"/>Resume</>}
-              </button>
-              <button className="h-9 px-3 rounded-md border border-border text-sm hover:bg-secondary">Edit</button>
-            </div>
+    <DashboardShell
+      sidebar={null}
+      title="Campaigns"
+      subtitle="Configure your dialing campaign settings"
+      actions={
+        <button
+          onClick={() => mutation.mutate(form)}
+          disabled={mutation.isPending}
+          className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+        >
+          {mutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {saved ? "Saved!" : "Save changes"}
+        </button>
+      }
+    >
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Section title="Calling hours">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Start time">
+              <input
+                type="time"
+                value={form.callingHoursStart ?? ""}
+                onChange={(e) => set("callingHoursStart", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="End time">
+              <input
+                type="time"
+                value={form.callingHoursEnd ?? ""}
+                onChange={(e) => set("callingHoursEnd", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
           </div>
-        ))}
+          <Field label="Timezone">
+            <select
+              value={form.timezone ?? ""}
+              onChange={(e) => set("timezone", e.target.value)}
+              className={inputCls}
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz}>{tz}</option>
+              ))}
+            </select>
+          </Field>
+        </Section>
+
+        <Section title="Dialing rules">
+          <Field label="Max attempts per lead">
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={form.maxAttemptsPerLead ?? ""}
+              onChange={(e) => set("maxAttemptsPerLead", Number(e.target.value))}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Retry interval (minutes)">
+            <input
+              type="number"
+              min={15}
+              value={form.retryIntervalMinutes ?? ""}
+              onChange={(e) => set("retryIntervalMinutes", Number(e.target.value))}
+              className={inputCls}
+            />
+          </Field>
+        </Section>
+
+        <Section title="Phone numbers">
+          <Field label="US number">
+            <input
+              type="tel"
+              value={form.usNumber ?? ""}
+              onChange={(e) => set("usNumber", e.target.value)}
+              placeholder="+12125550000"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Canada number">
+            <input
+              type="tel"
+              value={form.caNumber ?? ""}
+              onChange={(e) => set("caNumber", e.target.value)}
+              placeholder="+14165550000"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="UAE number">
+            <input
+              type="tel"
+              value={form.uaeNumber ?? ""}
+              onChange={(e) => set("uaeNumber", e.target.value)}
+              placeholder="+97145550000"
+              className={inputCls}
+            />
+          </Field>
+        </Section>
+
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Current config
+          </div>
+          <div className="font-semibold mt-1">Summary</div>
+          <dl className="mt-4 space-y-2 text-sm">
+            <Row
+              label="Hours"
+              value={`${form.callingHoursStart ?? "—"} – ${form.callingHoursEnd ?? "—"}`}
+            />
+            <Row label="Timezone" value={form.timezone ?? "—"} />
+            <Row label="Max attempts" value={String(form.maxAttemptsPerLead ?? "—")} />
+            <Row
+              label="Retry interval"
+              value={form.retryIntervalMinutes ? `${form.retryIntervalMinutes} min` : "—"}
+            />
+          </dl>
+          {mutation.isError && (
+            <p className="mt-3 text-xs text-destructive">
+              Failed to save. Backend may be offline — changes are cached locally.
+            </p>
+          )}
+        </div>
       </div>
     </DashboardShell>
+  );
+}
+
+const inputCls =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40";
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+      <div className="font-semibold">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs text-muted-foreground mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium">{value}</dd>
+    </div>
   );
 }

@@ -23,17 +23,45 @@ function MarketingNav() {
           <span>VoCallM</span>
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
-          <Link to="/how-it-works" activeProps={{ className: "text-foreground" }} className="hover:text-foreground">How it works</Link>
-          <Link to="/pricing" activeProps={{ className: "text-foreground" }} className="hover:text-foreground">Pricing</Link>
-          <Link to="/contact" activeProps={{ className: "text-foreground" }} className="hover:text-foreground">Contact</Link>
-          <a href="/admin" className="hover:text-foreground">Admin</a>
-          <a href="/portal" className="hover:text-foreground">Client portal</a>
+          <Link
+            to="/how-it-works"
+            activeProps={{ className: "text-foreground" }}
+            className="hover:text-foreground"
+          >
+            How it works
+          </Link>
+          <Link
+            to="/pricing"
+            activeProps={{ className: "text-foreground" }}
+            className="hover:text-foreground"
+          >
+            Pricing
+          </Link>
+          <Link
+            to="/contact"
+            activeProps={{ className: "text-foreground" }}
+            className="hover:text-foreground"
+          >
+            Contact
+          </Link>
+          <a href="/admin" className="hover:text-foreground">
+            Admin
+          </a>
+          <a href="/portal" className="hover:text-foreground">
+            Client portal
+          </a>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/contact" className="hidden sm:inline-flex h-9 items-center rounded-md px-3 text-sm text-foreground hover:bg-secondary">
+          <Link
+            to="/contact"
+            className="hidden sm:inline-flex h-9 items-center rounded-md px-3 text-sm text-foreground hover:bg-secondary"
+          >
             Sign in
           </Link>
-          <Link to="/contact" className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          <Link
+            to="/contact"
+            className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
             Book a demo
           </Link>
         </div>
@@ -54,12 +82,34 @@ function MarketingFooter() {
             VoCallM
           </div>
           <p className="mt-3 text-muted-foreground max-w-xs">
-            AI sales agents that book qualified meetings on autopilot. Built for businesses in the USA, Canada and Dubai.
+            AI sales agents that book qualified meetings on autopilot. Built for businesses in the
+            USA, Canada and Dubai.
           </p>
         </div>
-        <FooterCol title="Product" items={[["How it works","/how-it-works"],["Pricing","/pricing"],["Book demo","/contact"]]} />
-        <FooterCol title="Company" items={[["About","/"],["Contact","/contact"],["Privacy","/"],["Terms","/"]]} />
-        <FooterCol title="For teams" items={[["Admin portal","/admin"],["Client portal","/portal"]]} />
+        <FooterCol
+          title="Product"
+          items={[
+            ["How it works", "/how-it-works"],
+            ["Pricing", "/pricing"],
+            ["Book demo", "/contact"],
+          ]}
+        />
+        <FooterCol
+          title="Company"
+          items={[
+            ["About", "/"],
+            ["Contact", "/contact"],
+            ["Privacy", "/"],
+            ["Terms", "/"],
+          ]}
+        />
+        <FooterCol
+          title="For teams"
+          items={[
+            ["Admin portal", "/admin"],
+            ["Client portal", "/portal"],
+          ]}
+        />
       </div>
       <div className="border-t border-border">
         <div className="container-page py-5 flex items-center justify-between text-xs text-muted-foreground">
@@ -77,7 +127,11 @@ function FooterCol({ title, items }: { title: string; items: [string, string][] 
       <div className="font-medium text-foreground">{title}</div>
       <ul className="mt-3 space-y-2 text-muted-foreground">
         {items.map(([label, href]) => (
-          <li key={label}><a href={href} className="hover:text-foreground">{label}</a></li>
+          <li key={label}>
+            <a href={href} className="hover:text-foreground">
+              {label}
+            </a>
+          </li>
         ))}
       </ul>
     </div>
