@@ -11,23 +11,25 @@ export const Route = createFileRoute("/portal/calls")({
   component: Calls,
 });
 
+const LIMIT = 25;
+
 function Calls() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["calls", page],
-    queryFn: () => callsApi.list({ page, pageSize: 25 }),
+    queryFn: () => callsApi.list({ page, limit: LIMIT }),
   });
 
-  const calls = data?.data ?? [];
+  const calls = data?.calls ?? [];
   const total = data?.total ?? 0;
-  const totalPages = Math.ceil(total / 25);
+  const totalPages = Math.ceil(total / LIMIT) || 1;
   const selected = calls.find((c) => c.id === selectedId) ?? calls[0] ?? null;
 
   const { data: detail, isLoading: detailLoading } = useQuery({
     queryKey: ["call-detail", selected?.id],
-    queryFn: () => callsApi.getTranscript(selected!.id),
+    queryFn: () => callsApi.get(selected!.id),
     enabled: !!selected?.id,
   });
 
@@ -70,7 +72,7 @@ function Calls() {
                     <div className="text-xs text-muted-foreground">{c.lead?.company}</div>
                   </td>
                   <td className="px-3 py-3 text-xs capitalize">
-                    {c.outcome?.replace(/_/g, " ") ?? "—"}
+                    {c.outcome?.replace(/_/g, " ").toLowerCase() ?? "—"}
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">
                     {formatDuration(c.duration)}
@@ -145,9 +147,13 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
       <div className="p-5 border-b border-border">
         <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Outcome</div>
         <div
-          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${call.outcome === "booked" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}
+          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+            call.outcome === "BOOKED"
+              ? "bg-success/10 text-success"
+              : "bg-muted text-muted-foreground"
+          }`}
         >
-          {call.outcome?.replace(/_/g, " ") ?? "Unknown"}
+          {call.outcome?.replace(/_/g, " ").toLowerCase() ?? "Unknown"}
         </div>
         {call.meetingAt && (
           <p className="mt-2 text-xs text-muted-foreground">
@@ -196,7 +202,11 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
           {lines.map((t, i) => (
             <div key={i} className={t.who === "ai" ? "flex justify-start" : "flex justify-end"}>
               <div
-                className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${t.who === "ai" ? "bg-secondary rounded-bl-sm" : "bg-accent text-accent-foreground rounded-br-sm"}`}
+                className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${
+                  t.who === "ai"
+                    ? "bg-secondary rounded-bl-sm"
+                    : "bg-accent text-accent-foreground rounded-br-sm"
+                }`}
               >
                 {t.text}
               </div>

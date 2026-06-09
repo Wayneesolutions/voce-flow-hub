@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { dashboardApi, callsApi } from "@/lib/api";
+import { callStatsApi, callsApi } from "@/lib/api";
 import { CalendarCheck2, PhoneCall, PhoneIncoming, TrendingUp } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -24,71 +24,75 @@ export const Route = createFileRoute("/portal/")({
 });
 
 const OUTCOME_COLORS: Record<string, string> = {
-  booked: "#10B981",
-  callback: "#2E86DE",
-  not_interested: "#F59E0B",
-  voicemail: "#94A3B8",
-  no_answer: "#CBD5E1",
+  BOOKED: "#10B981",
+  CALLBACK: "#2E86DE",
+  NOT_INTERESTED: "#F59E0B",
+  VOICEMAIL: "#94A3B8",
+  NO_ANSWER: "#CBD5E1",
 };
 
 function PortalOverview() {
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: () => dashboardApi.getStats(),
+    queryKey: ["call-stats"],
+    queryFn: () => callStatsApi.get(),
     refetchInterval: 30_000,
   });
 
-  const { data: callsPage } = useQuery({
+  const { data: callsData } = useQuery({
     queryKey: ["calls-recent"],
-    queryFn: () => callsApi.list({ pageSize: 6 }),
+    queryFn: () => callsApi.list({ limit: 6 }),
     refetchInterval: 30_000,
   });
 
-  const { data: meetingsPage } = useQuery({
+  const { data: meetingsData } = useQuery({
     queryKey: ["calls-booked"],
-    queryFn: () => callsApi.list({ outcome: "booked", pageSize: 4 }),
+    queryFn: () => callsApi.list({ outcome: "BOOKED", limit: 4 }),
   });
 
-  const recentCalls = callsPage?.data ?? [];
-  const upcomingMeetings = meetingsPage?.data ?? [];
+  const recentCalls = callsData?.calls ?? [];
+  const upcomingMeetings = meetingsData?.calls ?? [];
 
-  const outcomeChartData = (stats?.outcomeBreakdown ?? []).map((o) => ({
-    name: o.outcome.replace(/_/g, " "),
-    value: o.count,
-    color: OUTCOME_COLORS[o.outcome] ?? "#94A3B8",
-  }));
+  const outcomeChartData = Object.entries({
+    BOOKED: stats?.booked ?? 0,
+    CALLBACK: stats?.callback ?? 0,
+    NOT_INTERESTED: stats?.notInterested ?? 0,
+    VOICEMAIL: stats?.voicemail ?? 0,
+    NO_ANSWER: stats?.noAnswer ?? 0,
+  })
+    .filter(([, v]) => v > 0)
+    .map(([outcome, count]) => ({
+      name: outcome.replace(/_/g, " ").toLowerCase(),
+      value: count,
+      color: OUTCOME_COLORS[outcome] ?? "#94A3B8",
+    }));
 
-  const callbackCount = stats?.outcomeBreakdown.find((o) => o.outcome === "callback")?.count ?? 0;
+  const callbackCount = stats?.callback ?? 0;
 
   return (
     <DashboardShell sidebar={null} title="Overview" subtitle="Today's calling performance">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Calls today"
-          value={statsLoading ? "—" : String(stats?.callsToday ?? 0)}
-          delta={12}
-          hint="vs last week"
+          label="Total calls"
+          value={statsLoading ? "—" : String(stats?.total ?? 0)}
+          hint="all time"
           icon={<PhoneCall className="h-4 w-4" />}
         />
         <StatCard
           label="Meetings booked"
-          value={statsLoading ? "—" : String(stats?.meetingsBooked ?? 0)}
-          delta={24}
-          hint="vs last week"
+          value={statsLoading ? "—" : String(stats?.booked ?? 0)}
+          hint="all time"
           icon={<CalendarCheck2 className="h-4 w-4" />}
         />
         <StatCard
           label="Conversion rate"
           value={statsLoading ? "—" : `${stats?.conversionRate ?? 0}%`}
-          delta={9}
-          hint="this month"
+          hint="booked / total"
           icon={<TrendingUp className="h-4 w-4" />}
         />
         <StatCard
-          label="Callbacks due"
+          label="Callbacks pending"
           value={statsLoading ? "—" : String(callbackCount)}
-          delta={-3}
-          hint="vs last week"
+          hint="scheduled"
           icon={<PhoneIncoming className="h-4 w-4" />}
         />
       </div>
@@ -99,7 +103,7 @@ function PortalOverview() {
           <div className="text-xs text-muted-foreground">Daily breakdown</div>
           <div className="h-72 mt-4">
             <ResponsiveContainer>
-              <BarChart data={stats?.callsByDay ?? []} margin={{ left: -10, right: 8 }}>
+              <BarChart data={[]} margin={{ left: -10, right: 8 }}>
                 <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="date"

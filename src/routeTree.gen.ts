@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ServicesRouteImport } from './routes/services'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as LoginRouteImport } from './routes/login'
@@ -25,9 +27,21 @@ import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
 import { Route as AdminScriptsRouteImport } from './routes/admin.scripts'
+import { Route as AdminNumbersRouteImport } from './routes/admin.numbers'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -108,6 +122,16 @@ const AdminScriptsRoute = AdminScriptsRouteImport.update({
   path: '/scripts',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNumbersRoute = AdminNumbersRouteImport.update({
+  id: '/numbers',
+  path: '/numbers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminClientsRoute = AdminClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -127,8 +151,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/portal': typeof PortalRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/register': typeof RegisterRoute
+  '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/numbers': typeof AdminNumbersRoute
   '/admin/scripts': typeof AdminScriptsRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
@@ -145,8 +173,12 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/register': typeof RegisterRoute
+  '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/numbers': typeof AdminNumbersRoute
   '/admin/scripts': typeof AdminScriptsRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
@@ -166,8 +198,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/portal': typeof PortalRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/register': typeof RegisterRoute
+  '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/numbers': typeof AdminNumbersRoute
   '/admin/scripts': typeof AdminScriptsRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
@@ -188,8 +224,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/portal'
     | '/pricing'
+    | '/register'
+    | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/login'
+    | '/admin/numbers'
     | '/admin/scripts'
     | '/portal/billing'
     | '/portal/calls'
@@ -206,8 +246,12 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/login'
     | '/pricing'
+    | '/register'
+    | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/login'
+    | '/admin/numbers'
     | '/admin/scripts'
     | '/portal/billing'
     | '/portal/calls'
@@ -226,8 +270,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/portal'
     | '/pricing'
+    | '/register'
+    | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/login'
+    | '/admin/numbers'
     | '/admin/scripts'
     | '/portal/billing'
     | '/portal/calls'
@@ -247,10 +295,26 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRouteWithChildren
   PricingRoute: typeof PricingRoute
+  RegisterRoute: typeof RegisterRoute
+  ServicesRoute: typeof ServicesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -363,6 +427,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScriptsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/numbers': {
+      id: '/admin/numbers'
+      path: '/numbers'
+      fullPath: '/admin/numbers'
+      preLoaderRoute: typeof AdminNumbersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/clients': {
       id: '/admin/clients'
       path: '/clients'
@@ -383,6 +461,8 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
   AdminClientsRoute: typeof AdminClientsRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminNumbersRoute: typeof AdminNumbersRoute
   AdminScriptsRoute: typeof AdminScriptsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -390,6 +470,8 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
   AdminClientsRoute: AdminClientsRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminNumbersRoute: AdminNumbersRoute,
   AdminScriptsRoute: AdminScriptsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
@@ -427,6 +509,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PortalRoute: PortalRouteWithChildren,
   PricingRoute: PricingRoute,
+  RegisterRoute: RegisterRoute,
+  ServicesRoute: ServicesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

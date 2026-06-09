@@ -9,9 +9,12 @@ import {
   Headphones,
   MessageSquare,
   PhoneCall,
+  Quote,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   Upload,
+  Users,
   Zap,
 } from "lucide-react";
 
@@ -39,13 +42,13 @@ function Home() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 to="/contact"
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 Book a free demo <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/how-it-works"
-                className="inline-flex items-center h-11 px-5 rounded-md border border-border bg-background text-sm font-medium hover:bg-secondary"
+                className="inline-flex items-center h-11 px-5 rounded-md border border-border bg-background text-sm font-medium hover:bg-secondary transition-colors"
               >
                 See how it works
               </Link>
@@ -89,6 +92,23 @@ function Home() {
         </div>
       </section>
 
+      {/* Stats */}
+      <section className="border-b border-border">
+        <div className="container-page py-16">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent mb-3">
+                  {s.icon}
+                </div>
+                <div className="text-3xl md:text-4xl font-bold tracking-tight">{s.value}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="border-b border-border">
         <div className="container-page py-20">
@@ -103,7 +123,7 @@ function Home() {
           </div>
           <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f) => (
-              <div key={f.title} className="rounded-lg border border-border bg-card p-6">
+              <div key={f.title} className="rounded-lg border border-border bg-card p-6 hover:shadow-md transition-shadow">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-accent/10 text-accent">
                   {f.icon}
                 </span>
@@ -115,8 +135,42 @@ function Home() {
         </div>
       </section>
 
-      {/* Pricing teaser */}
+      {/* Testimonials */}
       <section className="border-b border-border bg-muted/40">
+        <div className="container-page py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
+              What our clients say
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Real results from businesses using VoCallM across USA, Canada and Dubai.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((t) => (
+              <div key={t.name} className="rounded-xl border border-border bg-card p-6 flex flex-col gap-4">
+                <Quote className="h-5 w-5 text-accent opacity-60" />
+                <p className="text-sm text-muted-foreground leading-relaxed flex-1">"{t.quote}"</p>
+                <div className="flex items-center gap-3 pt-2 border-t border-border">
+                  <div
+                    className="h-9 w-9 rounded-full inline-flex items-center justify-center text-xs font-bold text-white shrink-0"
+                    style={{ background: t.color }}
+                  >
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{t.name}</div>
+                    <div className="text-xs text-muted-foreground">{t.title}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing teaser */}
+      <section className="border-b border-border">
         <div className="container-page py-20 grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
@@ -129,13 +183,13 @@ function Home() {
             <div className="mt-6 flex gap-3">
               <Link
                 to="/pricing"
-                className="inline-flex h-10 px-5 items-center rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+                className="inline-flex h-10 px-5 items-center rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 See full pricing
               </Link>
               <Link
                 to="/contact"
-                className="inline-flex h-10 px-5 items-center rounded-md border border-border bg-background text-sm font-medium hover:bg-secondary"
+                className="inline-flex h-10 px-5 items-center rounded-md border border-border bg-background text-sm font-medium hover:bg-secondary transition-colors"
               >
                 Talk to sales
               </Link>
@@ -156,7 +210,7 @@ function Home() {
                 "Human-in-the-loop script review",
               ].map((i) => (
                 <li key={i} className="flex gap-2">
-                  <BadgeCheck className="h-4 w-4 text-success" />
+                  <BadgeCheck className="h-4 w-4 text-success shrink-0" />
                   {i}
                 </li>
               ))}
@@ -166,7 +220,7 @@ function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="border-b border-border">
+      <section className="border-b border-border bg-muted/40">
         <div className="container-page py-20 grid lg:grid-cols-3 gap-10">
           <div>
             <h2 className="text-3xl font-semibold tracking-tight">Frequently asked questions</h2>
@@ -205,12 +259,20 @@ function Home() {
               exactly what it would cost for your team.
             </p>
           </div>
-          <Link
-            to="/contact"
-            className="inline-flex h-11 px-6 items-center gap-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90"
-          >
-            Book a demo <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="flex flex-wrap gap-3 shrink-0">
+            <Link
+              to="/contact"
+              className="inline-flex h-11 px-6 items-center gap-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+            >
+              Book a demo <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex h-11 px-6 items-center rounded-md border border-primary-foreground/30 text-sm font-medium hover:bg-primary-foreground/10 transition-colors"
+            >
+              Client login
+            </Link>
+          </div>
         </div>
       </section>
     </MarketingShell>
@@ -272,6 +334,56 @@ function Bubble({ who, children }: { who: "ai" | "lead"; children: React.ReactNo
     </div>
   );
 }
+
+const stats = [
+  {
+    value: "12,400+",
+    label: "Meetings booked",
+    icon: <Calendar className="h-5 w-5" />,
+  },
+  {
+    value: "98%",
+    label: "Call answer accuracy",
+    icon: <TrendingUp className="h-5 w-5" />,
+  },
+  {
+    value: "340+",
+    label: "Active clients",
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    value: "$0.30",
+    label: "Per talk minute",
+    icon: <Zap className="h-5 w-5" />,
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "We went from 3 booked demos a week to 14 within the first month. The AI handles objections better than half my SDR team.",
+    name: "Marcus Reid",
+    title: "Head of Sales · TechBase Inc.",
+    initials: "MR",
+    color: "#0EA5E9",
+  },
+  {
+    quote:
+      "Setup was painless. We uploaded our leads on Monday, approved the script Tuesday, and had our first booked meeting by Wednesday afternoon.",
+    name: "Aisha Al-Farsi",
+    title: "CEO · Gulf Digital Agency",
+    initials: "AA",
+    color: "#8B5CF6",
+  },
+  {
+    quote:
+      "The transcripts alone are worth it. I can coach my team on exactly where prospects dropped off and what objections we need to address.",
+    name: "Jordan Park",
+    title: "VP Revenue · Northstar Realty",
+    initials: "JP",
+    color: "#10B981",
+  },
+];
 
 const features = [
   {
@@ -341,5 +453,9 @@ const faqs = [
   {
     q: "What integrations do you support?",
     a: "HubSpot, Salesforce, GoHighLevel, Pipedrive, Google Calendar, Outlook, and webhooks for custom CRMs.",
+  },
+  {
+    q: "Is there a minimum commitment?",
+    a: "No minimums, no lock-in. Pay only for the minutes your agent actually talks. Scale up or down any time.",
   },
 ];

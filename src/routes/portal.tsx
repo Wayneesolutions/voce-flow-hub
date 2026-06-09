@@ -8,18 +8,11 @@ import {
   PhoneCall,
   CalendarCheck,
   CreditCard,
-  Wrench,
   LogOut,
 } from "lucide-react";
 import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
-import { useAuth } from "@/context/auth";
-
-export const tenant = {
-  name: "Acme Plumbing",
-  subtitle: "AI Calling Platform",
-  accent: "#0EA5E9",
-  initials: "AP",
-};
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { clearUser } from "@/store/userAuthSlice";
 
 const items: NavItem[] = [
   { to: "/portal", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -34,46 +27,65 @@ const items: NavItem[] = [
 export const Route = createFileRoute("/portal")({ component: PortalLayout });
 
 function PortalLayout() {
-  const { user, logout } = useAuth();
+  const client = useAppSelector((s) => s.userAuth.user);
+  const tenant = useAppSelector((s) => s.userAuth.tenant);
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) navigate({ to: "/login" });
-  }, [user, navigate]);
+    if (!client) navigate({ to: "/login" });
+  }, [client, navigate]);
 
-  if (!user) return null;
+  if (!client) return null;
 
-  const initials = user.name
+  const accentColor = tenant?.primaryColor ?? "#0EA5E9";
+
+  const initials = client.name
     .split(" ")
     .map((s) => s[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
 
+  const brandMark = tenant?.logoUrl ? (
+    <img
+      src={tenant.logoUrl}
+      alt={tenant.name}
+      className="h-5 w-5 object-contain"
+    />
+  ) : (
+    <span className="text-xs font-bold text-white">{initials}</span>
+  );
+
+  const handleLogout = () => {
+    dispatch(clearUser());
+    navigate({ to: "/login" });
+  };
+
   return (
     <>
       <DashboardSidebar
         brand={{
-          name: tenant.name,
-          subtitle: tenant.subtitle,
-          mark: <Wrench className="h-4 w-4" />,
-          markBg: tenant.accent,
+          name: tenant?.name ?? client.name,
+          subtitle: "AI Calling Platform",
+          mark: brandMark,
+          markBg: accentColor,
         }}
         items={items}
         footer={
           <div className="flex items-center gap-3 text-sm">
             <div
               className="h-8 w-8 rounded-full inline-flex items-center justify-center text-xs font-semibold text-white shrink-0"
-              style={{ background: tenant.accent }}
+              style={{ background: accentColor }}
             >
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-white font-medium text-[13px] truncate">{user.name}</div>
-              <div className="text-[11px] text-sidebar-foreground truncate">{user.email}</div>
+              <div className="text-white font-medium text-[13px] truncate">{client.name}</div>
+              <div className="text-[11px] text-sidebar-foreground truncate">{client.email}</div>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               title="Sign out"
               className="text-sidebar-foreground hover:text-white transition-colors shrink-0"
             >

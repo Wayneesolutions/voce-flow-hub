@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { adminStatsApi, adminTenantsApi, adminScriptsApi } from "@/lib/api";
+import type { Tenant, Script } from "@/lib/types";
+import { revenueByMonth } from "@/lib/mock";
 import {
   Users,
   PhoneCall,
@@ -12,7 +16,6 @@ import {
   ArrowRight,
   Clock,
 } from "lucide-react";
-import { adminKpis, clients, pendingScripts, revenueByMonth } from "@/lib/mock";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -31,7 +34,44 @@ export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
 });
 
+const PLATFORM_COST_PER_MIN = 0.12;
+
 function AdminDashboard() {
+  const { data: stats } = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: adminStatsApi.get,
+    refetchInterval: 30_000,
+  });
+
+  const { data: tenants = [] } = useQuery<Tenant[]>({
+    queryKey: ["admin", "tenants"],
+    queryFn: adminTenantsApi.list,
+  });
+
+  const { data: pending = [] } = useQuery<Script[]>({
+    queryKey: ["admin", "scripts", "pending"],
+    queryFn: adminScriptsApi.pending,
+    refetchInterval: 60_000,
+  });
+
+  // Build per-client revenue rows from tenant data (uses ratePerMinute * totalMinutes)
+  const clientRows = tenants.map((t) => {
+    const revenue = Math.round(t.ratePerMinute * t.totalMinutes * 100) / 100;
+    const cost = Math.round(PLATFORM_COST_PER_MIN * t.totalMinutes * 100) / 100;
+    return {
+      id: t.id,
+      name: t.name,
+      minutes: t.totalMinutes,
+      revenue,
+      cost,
+      profit: Math.round((revenue - cost) * 100) / 100,
+    };
+  });
+
+  const totalRevenue = clientRows.reduce((s, r) => s + r.revenue, 0);
+  const totalCost = clientRows.reduce((s, r) => s + r.cost, 0);
+  const totalProfit = totalRevenue - totalCost;
+
   return (
     <DashboardShell
       sidebar={null}
@@ -55,44 +95,38 @@ function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Active clients"
-          value={String(adminKpis.activeClients)}
-          delta={12}
-          hint="vs last month"
+          value={String(stats?.activeClients ?? tenants.length)}
+          hint="total"
           icon={<Users className="h-4 w-4" />}
         />
         <StatCard
           label="Calls today"
-          value={adminKpis.callsToday.toLocaleString()}
-          delta={8}
-          hint="vs yesterday"
+          value={(stats?.callsToday ?? 0).toLocaleString()}
+          hint="today"
           icon={<PhoneCall className="h-4 w-4" />}
         />
         <StatCard
-          label="Minutes used"
-          value={adminKpis.minutesUsed.toLocaleString()}
-          delta={6}
-          hint="this month"
+          label="Minutes today"
+          value={(stats?.minutesToday ?? 0).toLocaleString()}
+          hint="today"
           icon={<Timer className="h-4 w-4" />}
         />
         <StatCard
-          label="Meetings booked"
-          value={String(adminKpis.meetingsBooked)}
-          delta={18}
-          hint="this month"
+          label="Meetings today"
+          value={String(stats?.meetingsToday ?? 0)}
+          hint="today"
           icon={<CalendarCheck2 className="h-4 w-4" />}
         />
         <StatCard
-          label="Revenue"
-          value={`$${adminKpis.revenue.toLocaleString()}`}
-          delta={14}
-          hint="MTD"
+          label="Revenue today"
+          value={`$${(stats?.revenueToday ?? 0).toFixed(2)}`}
+          hint="today"
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
-          label="Gross profit"
-          value={`$${adminKpis.profit.toLocaleString()}`}
-          delta={11}
-          hint="60% margin"
+          label="Gross profit MTD"
+          value={`$${totalProfit.toLocaleString()}`}
+          hint={totalRevenue > 0 ? `${Math.round((totalProfit / totalRevenue) * 100)}% margin` : ""}
           icon={<TrendingUp className="h-4 w-4" />}
         />
       </div>
@@ -104,10 +138,6 @@ function AdminDashboard() {
               <div className="font-semibold">Revenue & profit</div>
               <div className="text-xs text-muted-foreground">Last 6 months</div>
             </div>
-            <select className="h-8 text-xs rounded-md border border-border bg-background px-2">
-              <option>6 months</option>
-              <option>12 months</option>
-            </select>
           </div>
           <div className="h-72">
             <ResponsiveContainer>
@@ -123,16 +153,9 @@ function AdminDashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="m"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 12, fill: "#64748b" }}
-                />
+                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }}
-                />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }} />
                 <Area dataKey="revenue" stroke="#2E86DE" strokeWidth={2} fill="url(#rev)" />
                 <Area dataKey="profit" stroke="#10B981" strokeWidth={2} fill="url(#prof)" />
               </AreaChart>
@@ -141,23 +164,14 @@ function AdminDashboard() {
         </div>
 
         <div className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="font-semibold">Revenue by client</div>
-          </div>
+          <div className="font-semibold mb-4">Revenue by client</div>
           <div className="h-72">
             <ResponsiveContainer>
-              <BarChart data={clients} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
+              <BarChart data={clientRows} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
                 <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 10, fill: "#64748b" }}
-                />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#64748b" }} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }}
-                />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="revenue" fill="#2E86DE" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="profit" fill="#10B981" radius={[4, 4, 0, 0]} />
@@ -168,6 +182,7 @@ function AdminDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        {/* Profitability table */}
         <div className="lg:col-span-2 rounded-lg border border-border bg-card overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-border">
             <div className="font-semibold">Clients · profitability</div>
@@ -178,91 +193,90 @@ function AdminDashboard() {
               View all <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="text-left font-medium px-5 py-2.5">Client</th>
-                <th className="text-right font-medium px-3 py-2.5">Minutes</th>
-                <th className="text-right font-medium px-3 py-2.5">Revenue</th>
-                <th className="text-right font-medium px-3 py-2.5">Cost</th>
-                <th className="text-right font-medium px-3 py-2.5">Profit</th>
-                <th className="text-right font-medium px-5 py-2.5">Margin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((c) => (
-                <tr key={c.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-5 py-3 font-medium">{c.name}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">
-                    {c.minutes.toLocaleString()}
+          {clientRows.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No client data yet.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="text-left font-medium px-5 py-2.5">Client</th>
+                  <th className="text-right font-medium px-3 py-2.5">Minutes</th>
+                  <th className="text-right font-medium px-3 py-2.5">Revenue</th>
+                  <th className="text-right font-medium px-3 py-2.5">Cost</th>
+                  <th className="text-right font-medium px-3 py-2.5">Profit</th>
+                  <th className="text-right font-medium px-5 py-2.5">Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientRows.map((c) => (
+                  <tr key={c.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="px-5 py-3 font-medium">{c.name}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{c.minutes.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${c.revenue.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">${c.cost.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right tabular-nums font-medium text-success">${c.profit.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-right">
+                      <span className="inline-flex rounded-full bg-success/10 text-success px-2 py-0.5 text-xs font-medium">
+                        {c.revenue > 0 ? `${Math.round((c.profit / c.revenue) * 100)}%` : "—"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-border bg-primary text-primary-foreground">
+                  <td className="px-5 py-3 font-semibold">Total</td>
+                  <td className="px-3 py-3 text-right tabular-nums font-semibold">
+                    {clientRows.reduce((a, c) => a + c.minutes, 0).toLocaleString()}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
-                    ${c.revenue.toLocaleString()}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
-                    ${c.cost.toLocaleString()}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums font-medium text-success">
-                    ${c.profit.toLocaleString()}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="inline-flex rounded-full bg-success/10 text-success px-2 py-0.5 text-xs font-medium">
-                      {Math.round((c.profit / c.revenue) * 100)}%
-                    </span>
+                  <td className="px-3 py-3 text-right tabular-nums font-semibold">${totalRevenue.toLocaleString()}</td>
+                  <td className="px-3 py-3 text-right tabular-nums">${totalCost.toLocaleString()}</td>
+                  <td className="px-3 py-3 text-right tabular-nums font-semibold">${totalProfit.toLocaleString()}</td>
+                  <td className="px-5 py-3 text-right font-semibold">
+                    {totalRevenue > 0 ? `${Math.round((totalProfit / totalRevenue) * 100)}%` : "—"}
                   </td>
                 </tr>
-              ))}
-              <tr className="border-t-2 border-border bg-primary text-primary-foreground">
-                <td className="px-5 py-3 font-semibold">Total</td>
-                <td className="px-3 py-3 text-right tabular-nums font-semibold">
-                  {clients.reduce((a, c) => a + c.minutes, 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-3 text-right tabular-nums font-semibold">
-                  ${clients.reduce((a, c) => a + c.revenue, 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-3 text-right tabular-nums">
-                  ${clients.reduce((a, c) => a + c.cost, 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-3 text-right tabular-nums font-semibold">
-                  ${clients.reduce((a, c) => a + c.profit, 0).toLocaleString()}
-                </td>
-                <td className="px-5 py-3 text-right font-semibold">60%</td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          )}
         </div>
 
+        {/* Pending scripts */}
         <div className="rounded-lg border border-border bg-card">
           <div className="flex items-center justify-between p-5 border-b border-border">
             <div>
               <div className="font-semibold">Pending approvals</div>
               <div className="text-xs text-muted-foreground">Scripts waiting for review</div>
             </div>
-            <span className="rounded-full bg-warning/10 text-warning text-xs font-semibold px-2 py-0.5">
-              {pendingScripts.length}
-            </span>
+            {pending.length > 0 && (
+              <span className="rounded-full bg-warning/10 text-warning text-xs font-semibold px-2 py-0.5">
+                {pending.length}
+              </span>
+            )}
           </div>
-          <ul className="divide-y divide-border">
-            {pendingScripts.map((s) => (
-              <li key={s.id} className="p-5 flex items-start gap-3">
-                <span className="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-md bg-warning/10 text-warning">
-                  <Clock className="h-4 w-4" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{s.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {s.client} · submitted {s.submitted}
+          {pending.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground text-center">All caught up!</div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {pending.map((s) => (
+                <li key={s.id} className="p-5 flex items-start gap-3">
+                  <span className="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-md bg-warning/10 text-warning">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{s.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {s.tenant?.name ?? "Unknown client"} · {new Date(s.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
-                </div>
-                <Link
-                  to="/admin/scripts"
-                  className="text-xs font-medium text-accent hover:underline"
-                >
-                  Review
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  <Link
+                    to="/admin/scripts"
+                    className="text-xs font-medium text-accent hover:underline"
+                  >
+                    Review
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </DashboardShell>

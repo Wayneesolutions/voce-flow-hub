@@ -9,7 +9,6 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -39,27 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await authApi.login(email, password);
+      const res = await authApi.tenantLogin(email, password);
       localStorage.setItem(TOKEN_KEY, res.token);
-      setUser({ email, name: res.name });
+      setUser({ email: res.user.email, name: res.user.name });
     } catch {
-      // Backend unreachable in dev — accept any valid-looking credentials
       if (import.meta.env.PROD) throw new Error("Invalid credentials");
       if (!email || password.length < 6) throw new Error("Invalid credentials");
       setUser({ email, name: email.split("@")[0] });
-    }
-  };
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      const res = await authApi.register(name, email, password);
-      localStorage.setItem(TOKEN_KEY, res.token);
-      setUser({ email, name: res.name });
-    } catch {
-      if (import.meta.env.PROD) throw new Error("Registration failed");
-      if (!name || !email || password.length < 6)
-        throw new Error("All fields required; password must be 6+ chars");
-      setUser({ email, name });
     }
   };
 
@@ -69,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

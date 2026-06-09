@@ -9,8 +9,6 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   AlertTriangle,
-  XCircle,
-  PhoneCall,
   Trash2,
   Loader2,
 } from "lucide-react";
@@ -23,25 +21,22 @@ export const Route = createFileRoute("/portal/leads")({
 function Leads() {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadResult, setUploadResult] = useState<{ imported: number; errors: string[] } | null>(
-    null,
-  );
+  const [uploadResult, setUploadResult] = useState<{
+    imported: number;
+    skipped: number;
+    errors: string[];
+  } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search],
-    queryFn: () => leadsApi.list({ page, pageSize: 20, search: search || undefined }),
+    queryKey: ["leads", page],
+    queryFn: () => leadsApi.list({ page, limit: 20 }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => leadsApi.delete(id),
+    mutationFn: (id: string) => leadsApi.optOut(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
-  });
-
-  const callMutation = useMutation({
-    mutationFn: (id: string) => leadsApi.triggerCall(id),
   });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,16 +49,16 @@ function Leads() {
       setUploadResult(result);
       qc.invalidateQueries({ queryKey: ["leads"] });
     } catch {
-      setUploadResult({ imported: 0, errors: ["Upload failed — check file format"] });
+      setUploadResult({ imported: 0, skipped: 0, errors: ["Upload failed — check file format"] });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
 
-  const leads = data?.data ?? [];
+  const leads = data?.leads ?? [];
   const total = data?.total ?? 0;
-  const totalPages = Math.ceil(total / 20);
+  const totalPages = data?.pages ?? 1;
 
   return (
     <DashboardShell
@@ -132,8 +127,8 @@ function Leads() {
                 />
                 <UploadStat
                   icon={<AlertTriangle className="h-4 w-4 text-warning" />}
-                  label="Errors"
-                  value={String(uploadResult.errors.length)}
+                  label="Skipped"
+                  value={String(uploadResult.skipped)}
                 />
               </ul>
               {uploadResult.errors.length > 0 && (
@@ -162,16 +157,6 @@ function Leads() {
           <div className="font-semibold">
             Leads <span className="text-muted-foreground font-normal text-sm">({total})</span>
           </div>
-          <input
-            type="search"
-            placeholder="Search name, company…"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="h-8 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 w-48"
-          />
         </div>
 
         <table className="w-full text-sm">
@@ -213,24 +198,14 @@ function Leads() {
                 </td>
                 <td className="px-3 py-3 text-right tabular-nums">{l.callAttempts}</td>
                 <td className="px-5 py-3 text-right">
-                  <div className="inline-flex items-center gap-1">
-                    <button
-                      title="Trigger call"
-                      onClick={() => callMutation.mutate(l.id)}
-                      disabled={callMutation.isPending}
-                      className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent hover:text-accent-foreground hover:border-accent transition-colors disabled:opacity-50"
-                    >
-                      <PhoneCall className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      title="Delete lead"
-                      onClick={() => deleteMutation.mutate(l.id)}
-                      disabled={deleteMutation.isPending}
-                      className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    title="Opt out lead"
+                    onClick={() => deleteMutation.mutate(l.id)}
+                    disabled={deleteMutation.isPending}
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -285,22 +260,24 @@ function UploadStat({
   );
 }
 
-const STATUS_STYLES: Record<LeadStatus, string> = {
-  pending: "bg-muted text-muted-foreground",
-  calling: "bg-accent/10 text-accent",
-  booked: "bg-success/10 text-success",
-  not_interested: "bg-warning/10 text-warning",
-  callback: "bg-accent/10 text-accent",
-  voicemail: "bg-muted text-muted-foreground",
-  no_answer: "bg-muted text-muted-foreground",
+const STATUS_STYLES: Partial<Record<LeadStatus, string>> = {
+  PENDING: "bg-muted text-muted-foreground",
+  CALLING: "bg-accent/10 text-accent",
+  BOOKED: "bg-success/10 text-success",
+  NOT_INTERESTED: "bg-warning/10 text-warning",
+  CALLBACK: "bg-accent/10 text-accent",
+  VOICEMAIL: "bg-muted text-muted-foreground",
+  NO_ANSWER: "bg-muted text-muted-foreground",
+  OPTED_OUT: "bg-destructive/10 text-destructive",
+  EXHAUSTED: "bg-muted text-muted-foreground",
 };
 
 function StatusBadge({ status }: { status: LeadStatus }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status]}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status] ?? "bg-muted text-muted-foreground"}`}
     >
-      {status.replace(/_/g, " ")}
+      {status.replace(/_/g, " ").toLowerCase()}
     </span>
   );
 }
