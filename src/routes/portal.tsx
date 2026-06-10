@@ -8,6 +8,7 @@ import {
   PhoneCall,
   CalendarCheck,
   CreditCard,
+  Settings,
   LogOut,
 } from "lucide-react";
 import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
@@ -22,6 +23,7 @@ const items: NavItem[] = [
   { to: "/portal/calls", label: "Call Log", icon: <PhoneCall className="h-4 w-4" /> },
   { to: "/portal/meetings", label: "Meetings", icon: <CalendarCheck className="h-4 w-4" /> },
   { to: "/portal/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
+  { to: "/portal/settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
 ];
 
 export const Route = createFileRoute("/portal")({ component: PortalLayout });

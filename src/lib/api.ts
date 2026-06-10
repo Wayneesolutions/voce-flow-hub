@@ -378,3 +378,35 @@ export const agentApi = {
   testCall: (toNumber: string): Promise<{ callSid: string }> =>
     http.post("/settings/agent/test-call", { toNumber }).then((r) => r.data),
 };
+
+// ── Tenant: current account info + integrations ───────────────────────────────
+
+export interface TenantMe {
+  id: string;
+  name: string;
+  slug: string;
+  domain?: string;
+  logoUrl?: string;
+  primaryColor: string;
+  status: string;
+  ratePerMinute: number;
+  totalMinutes: number;
+  hasCalcom: boolean;
+  hasHubspot: boolean;
+  hasGcal: boolean;
+}
+
+export interface IntegrationUpdate {
+  calcomApiKey?: string;
+  calcomEventTypeId?: string;
+  hubspotAccessToken?: string;
+  googleCalendarToken?: string;
+}
+
+export const tenantApi = {
+  me: (): Promise<TenantMe> =>
+    http.get("/tenant/me").then((r) => r.data),
+
+  updateIntegrations: (data: IntegrationUpdate): Promise<{ message: string }> =>
+    http.patch("/tenant/integrations", data).then((r) => r.data),
+};

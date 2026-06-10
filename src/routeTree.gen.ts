@@ -20,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PortalSettingsRouteImport } from './routes/portal.settings'
 import { Route as PortalScriptsRouteImport } from './routes/portal.scripts'
 import { Route as PortalMeetingsRouteImport } from './routes/portal.meetings'
 import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
@@ -86,6 +87,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const PortalSettingsRoute = PortalSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PortalScriptsRoute = PortalScriptsRouteImport.update({
   id: '/scripts',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
+  '/portal/settings': typeof PortalSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
 }
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
+  '/portal/settings': typeof PortalSettingsRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
 }
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
+  '/portal/settings': typeof PortalSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
 }
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/portal/leads'
     | '/portal/meetings'
     | '/portal/scripts'
+    | '/portal/settings'
     | '/admin/'
     | '/portal/'
   fileRoutesByTo: FileRoutesByTo
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/portal/leads'
     | '/portal/meetings'
     | '/portal/scripts'
+    | '/portal/settings'
     | '/admin'
     | '/portal'
   id:
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/portal/leads'
     | '/portal/meetings'
     | '/portal/scripts'
+    | '/portal/settings'
     | '/admin/'
     | '/portal/'
   fileRoutesById: FileRoutesById
@@ -377,6 +389,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/portal/settings': {
+      id: '/portal/settings'
+      path: '/settings'
+      fullPath: '/portal/settings'
+      preLoaderRoute: typeof PortalSettingsRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/portal/scripts': {
       id: '/portal/scripts'
@@ -485,6 +504,7 @@ interface PortalRouteChildren {
   PortalLeadsRoute: typeof PortalLeadsRoute
   PortalMeetingsRoute: typeof PortalMeetingsRoute
   PortalScriptsRoute: typeof PortalScriptsRoute
+  PortalSettingsRoute: typeof PortalSettingsRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
@@ -495,6 +515,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalLeadsRoute: PortalLeadsRoute,
   PortalMeetingsRoute: PortalMeetingsRoute,
   PortalScriptsRoute: PortalScriptsRoute,
+  PortalSettingsRoute: PortalSettingsRoute,
   PortalIndexRoute: PortalIndexRoute,
 }
 

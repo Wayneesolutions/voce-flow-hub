@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { callsApi } from "@/lib/api";
 import type { Call } from "@/lib/types";
-import { Play, Download, Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/portal/calls")({
   head: () => ({ meta: [{ title: "Call Log · Client Portal" }] }),
@@ -164,29 +164,21 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
 
       {call.recordingUrl && (
         <div className="p-5 border-b border-border">
-          <div className="flex items-center gap-3 rounded-md bg-muted/40 border border-border px-3 py-2">
-            <a
-              href={call.recordingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="h-8 w-8 rounded-full bg-accent text-accent-foreground inline-flex items-center justify-center shrink-0"
-            >
-              <Play className="h-4 w-4" />
-            </a>
-            <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-              <div className="h-full bg-accent w-0" />
-            </div>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {formatDuration(call.duration)}
-            </span>
-            <a
-              href={call.recordingUrl}
-              download
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Download className="h-4 w-4" />
-            </a>
-          </div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Recording</div>
+          <audio
+            controls
+            src={call.recordingUrl}
+            className="w-full h-9"
+            preload="metadata"
+          />
+          <a
+            href={call.recordingUrl}
+            download
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download recording
+          </a>
         </div>
       )}
 
