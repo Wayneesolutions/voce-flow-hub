@@ -165,6 +165,9 @@ export const adminScriptsApi = {
   pending: (): Promise<Script[]> =>
     adminHttp.get("/admin/scripts/pending").then((r) => r.data),
 
+  reviewed: (): Promise<Script[]> =>
+    adminHttp.get("/admin/scripts/reviewed").then((r) => r.data),
+
   approve: (scriptId: string): Promise<Script> =>
     adminHttp.post(`/admin/scripts/${scriptId}/approve`).then((r) => r.data),
 
@@ -233,6 +236,9 @@ export const leadsApi = {
 
   optOut: (leadId: string): Promise<void> =>
     http.delete(`/leads/${leadId}`).then((r) => r.data),
+
+  unassignedCount: (): Promise<{ count: number }> =>
+    http.get("/leads/unassigned-count").then((r) => r.data),
 };
 
 // ── Client portal: Calls ──────────────────────────────────────────────────────
@@ -308,8 +314,19 @@ export const campaignsApi = {
     callDays?: string;
     maxAttempts?: number;
     retryAfterHours?: number;
+    includeAllLeads?: boolean;
   }): Promise<Campaign> =>
     http.post("/campaigns", data).then((r) => r.data),
+
+  update: (campaignId: string, data: {
+    callFromHour?: number;
+    callToHour?: number;
+    timezone?: string;
+    callDays?: string;
+    maxAttempts?: number;
+    retryAfterHours?: number;
+  }): Promise<Campaign> =>
+    http.patch(`/campaigns/${campaignId}`, data).then((r) => r.data),
 
   start: (campaignId: string): Promise<{ message: string }> =>
     http.post(`/campaigns/${campaignId}/start`).then((r) => r.data),

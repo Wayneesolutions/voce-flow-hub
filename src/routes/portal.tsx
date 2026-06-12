@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Upload,
@@ -33,12 +33,16 @@ function PortalLayout() {
   const tenant = useAppSelector((s) => s.userAuth.tenant);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     if (!client) navigate({ to: "/login" });
-  }, [client, navigate]);
+  }, [client, navigate, mounted]);
 
-  if (!client) return null;
+  if (!mounted || !client) return null;
 
   const accentColor = tenant?.primaryColor ?? "#0EA5E9";
 

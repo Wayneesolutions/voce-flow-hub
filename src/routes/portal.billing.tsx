@@ -26,19 +26,19 @@ function PortalBilling() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Rate per minute"
-          value={summaryLoading ? "—" : `$${summary?.ratePerMinute.toFixed(2) ?? "0.00"}`}
+          value={summaryLoading ? "—" : `$${(summary?.ratePerMinute ?? 0).toFixed(2)}`}
           icon={<DollarSign className="h-4 w-4" />}
           hint="your plan rate"
         />
         <StatCard
           label="Minutes used"
-          value={summaryLoading ? "—" : (summary?.totalMinutes.toFixed(1) ?? "0")}
+          value={summaryLoading ? "—" : (summary?.totalMinutes ?? 0).toFixed(1)}
           icon={<Timer className="h-4 w-4" />}
           hint="this period"
         />
         <StatCard
           label="Amount billed"
-          value={summaryLoading ? "—" : `$${summary?.totalAmount.toFixed(2) ?? "0.00"}`}
+          value={summaryLoading ? "—" : `$${(summary?.totalAmount ?? 0).toFixed(2)}`}
           icon={<Receipt className="h-4 w-4" />}
           hint="this period"
         />

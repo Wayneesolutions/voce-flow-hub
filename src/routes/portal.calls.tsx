@@ -130,8 +130,8 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
         .split("\n")
         .filter(Boolean)
         .map((line) => {
-          const isAgent = line.startsWith("Agent:");
-          return { who: isAgent ? "ai" : "lead", text: line.replace(/^(Agent:|Prospect:)\s*/, "") };
+          const isAgent = /^\[ASSISTANT\]/i.test(line) || /^\[BOT\]/i.test(line);
+          return { who: isAgent ? "ai" : "lead", text: line.replace(/^\[\w+\]\s*/, "") };
         })
     : [];
 

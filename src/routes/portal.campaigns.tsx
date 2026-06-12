@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { campaignsApi, scriptsApi } from "@/lib/api";
+import { campaignsApi, scriptsApi, leadsApi } from "@/lib/api";
 import type { Campaign, Script } from "@/lib/types";
-import { Plus, Play, Pause, X, Loader2 } from "lucide-react";
+import { Plus, Play, Pause, X, Loader2, Users, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/campaigns")({
@@ -18,6 +18,7 @@ const TIMEZONES = [
   "America/Chicago",
   "America/Denver",
   "America/Los_Angeles",
+  "Asia/Kolkata",
   "Asia/Dubai",
   "UTC",
 ];
@@ -38,12 +39,15 @@ const defaultForm = {
   callDays: "MON,TUE,WED,THU,FRI",
   maxAttempts: "3",
   retryAfterHours: "24",
+  includeAllLeads: true,
 };
 
 function Campaigns() {
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [editing, setEditing] = useState<Campaign | null>(null);
+  const [editForm, setEditForm] = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", maxAttempts: "3", retryAfterHours: "24" });
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -54,6 +58,12 @@ function Campaigns() {
   const { data: scripts = [] } = useQuery<Script[]>({
     queryKey: ["scripts"],
     queryFn: scriptsApi.list,
+  });
+
+  const { data: unassigned } = useQuery<{ count: number }>({
+    queryKey: ["leads", "unassigned-count"],
+    queryFn: leadsApi.unassignedCount,
+    enabled: creating,
   });
 
   const liveScripts = scripts.filter((s) => s.status === "LIVE" || s.status === "APPROVED");
@@ -69,6 +79,7 @@ function Campaigns() {
         callDays: form.callDays,
         maxAttempts: parseInt(form.maxAttempts),
         retryAfterHours: parseInt(form.retryAfterHours),
+        includeAllLeads: form.includeAllLeads,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
@@ -97,7 +108,31 @@ function Campaigns() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const f = (key: keyof typeof form, val: string) => setForm((p) => ({ ...p, [key]: val }));
+  const updateMut = useMutation({
+    mutationFn: (data: Parameters<typeof campaignsApi.update>[1]) =>
+      campaignsApi.update(editing!.id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      setEditing(null);
+      toast.success("Campaign updated");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const openEdit = (c: Campaign) => {
+    setEditForm({
+      callFromHour: String(c.callFromHour),
+      callToHour: String(c.callToHour),
+      timezone: c.timezone,
+      maxAttempts: String(c.maxAttempts),
+      retryAfterHours: String(c.retryAfterHours),
+    });
+    setEditing(c);
+  };
+
+  const ef = (key: keyof typeof editForm, val: string) => setEditForm((p) => ({ ...p, [key]: val }));
+
+  const f = (key: keyof typeof form, val: string | boolean) => setForm((p) => ({ ...p, [key]: val }));
 
   return (
     <DashboardShell
@@ -169,30 +204,122 @@ function Campaigns() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    {c.status === "ACTIVE" ? (
+                    <div className="inline-flex items-center gap-2">
                       <button
-                        onClick={() => pauseMut.mutate(c.id)}
-                        disabled={pauseMut.isPending}
-                        className="h-8 px-3 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center gap-1 disabled:opacity-60"
+                        onClick={() => openEdit(c)}
+                        className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
+                        title="Edit schedule"
                       >
-                        <Pause className="h-3.5 w-3.5" />
-                        Pause
+                        <Settings2 className="h-3.5 w-3.5" />
                       </button>
-                    ) : c.status !== "COMPLETED" ? (
-                      <button
-                        onClick={() => startMut.mutate(c.id)}
-                        disabled={startMut.isPending}
-                        className="h-8 px-3 rounded-md bg-success text-white text-xs hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-60"
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                        Start
-                      </button>
-                    ) : null}
+                      {c.status === "ACTIVE" ? (
+                        <button
+                          onClick={() => pauseMut.mutate(c.id)}
+                          disabled={pauseMut.isPending}
+                          className="h-8 px-3 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center gap-1 disabled:opacity-60"
+                        >
+                          <Pause className="h-3.5 w-3.5" />
+                          Pause
+                        </button>
+                      ) : c.status !== "COMPLETED" ? (
+                        <button
+                          onClick={() => startMut.mutate(c.id)}
+                          disabled={startMut.isPending}
+                          className="h-8 px-3 rounded-md bg-success text-white text-xs hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-60"
+                        >
+                          <Play className="h-3.5 w-3.5" />
+                          Start
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit schedule modal */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-md rounded-lg border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <div className="font-semibold">Edit schedule — {editing.name}</div>
+              <button onClick={() => setEditing(null)} className="p-1 rounded hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">Call from (hour)</label>
+                <input
+                  type="number" min={0} max={23}
+                  value={editForm.callFromHour}
+                  onChange={(e) => ef("callFromHour", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Call to (hour)</label>
+                <input
+                  type="number" min={0} max={23}
+                  value={editForm.callToHour}
+                  onChange={(e) => ef("callToHour", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Timezone</label>
+                <select
+                  value={editForm.timezone}
+                  onChange={(e) => ef("timezone", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                >
+                  {TIMEZONES.map((tz) => <option key={tz}>{tz}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Max attempts</label>
+                <input
+                  type="number" min={1} max={10}
+                  value={editForm.maxAttempts}
+                  onChange={(e) => ef("maxAttempts", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Retry after (hours)</label>
+                <input
+                  type="number" min={1}
+                  value={editForm.retryAfterHours}
+                  onChange={(e) => ef("retryAfterHours", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+            </div>
+            <div className="p-5 border-t border-border flex justify-end gap-2">
+              <button
+                onClick={() => setEditing(null)}
+                className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => updateMut.mutate({
+                  callFromHour: parseInt(editForm.callFromHour),
+                  callToHour: parseInt(editForm.callToHour),
+                  timezone: editForm.timezone,
+                  maxAttempts: parseInt(editForm.maxAttempts),
+                  retryAfterHours: parseInt(editForm.retryAfterHours),
+                })}
+                disabled={updateMut.isPending}
+                className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+              >
+                {updateMut.isPending ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -237,6 +364,37 @@ function Campaigns() {
                   </select>
                 )}
               </div>
+              {/* Leads assignment */}
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Leads</label>
+                <div className="mt-1.5 rounded-md border border-border bg-muted/30 px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    {unassigned === undefined ? (
+                      <span className="text-muted-foreground">Counting unassigned leads…</span>
+                    ) : unassigned.count === 0 ? (
+                      <span className="text-warning">No unassigned leads. Upload leads first.</span>
+                    ) : (
+                      <span>
+                        <span className="font-semibold">{unassigned.count.toLocaleString()}</span>
+                        {" "}unassigned lead{unassigned.count !== 1 ? "s" : ""} available
+                      </span>
+                    )}
+                  </div>
+                  {(unassigned?.count ?? 0) > 0 && (
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.includeAllLeads}
+                        onChange={(e) => setForm((p) => ({ ...p, includeAllLeads: e.target.checked }))}
+                        className="h-4 w-4 rounded accent-primary"
+                      />
+                      Add all to campaign
+                    </label>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-medium">Call from (hour)</label>
                 <input

@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -28,17 +28,23 @@ function AdminLayout() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [mounted, setMounted] = useState(false);
 
   const isLoginRoute = pathname === "/admin/login";
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
+    if (!mounted) return;
     if (!admin && !isLoginRoute) navigate({ to: "/admin/login" });
-  }, [admin, isLoginRoute, navigate]);
+  }, [admin, isLoginRoute, navigate, mounted]);
 
   // Login page renders without the sidebar shell
   if (isLoginRoute) return <Outlet />;
 
-  if (!admin) return null;
+  // Server has no localStorage so admin is null on SSR.
+  // Render null until client mounts — matches server output and avoids hydration mismatch.
+  if (!mounted || !admin) return null;
 
   const initials = admin.name
     .split(" ")

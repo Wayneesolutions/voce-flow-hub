@@ -86,6 +86,7 @@ export interface Script {
   status: ScriptStatus;
   reviewNote?: string;
   isActive: boolean;
+  reviewedAt?: string;
   createdAt: string;
   updatedAt: string;
   tenant?: { id: string; name: string };

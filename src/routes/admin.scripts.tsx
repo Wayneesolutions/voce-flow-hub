@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { adminScriptsApi } from "@/lib/api";
 import type { Script } from "@/lib/types";
-import { Check, FileText, X, MessageSquare, Loader2 } from "lucide-react";
+import { Check, FileText, X, MessageSquare, Loader2, BadgeCheck, Ban } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/scripts")({
@@ -24,12 +24,18 @@ function ScriptReview() {
     refetchInterval: 30_000,
   });
 
+  const { data: reviewed = [] } = useQuery<Script[]>({
+    queryKey: ["admin", "scripts", "reviewed"],
+    queryFn: adminScriptsApi.reviewed,
+  });
+
   const active = scripts.find((s) => s.id === selectedId) ?? scripts[0];
 
   const approveMut = useMutation({
     mutationFn: (id: string) => adminScriptsApi.approve(id),
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: ["admin", "scripts", "pending"] });
+      qc.invalidateQueries({ queryKey: ["admin", "scripts", "reviewed"] });
       toast.success(`Script approved — Vapi assistant created`);
       const remaining = scripts.filter((s) => s.id !== updated.id);
       setSelectedId(remaining[0]?.id ?? null);
@@ -41,6 +47,7 @@ function ScriptReview() {
     mutationFn: ({ id, note }: { id: string; note: string }) => adminScriptsApi.reject(id, note),
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: ["admin", "scripts", "pending"] });
+      qc.invalidateQueries({ queryKey: ["admin", "scripts", "reviewed"] });
       toast.success("Script rejected — client notified");
       setRejectNote("");
       setRejecting(false);
@@ -67,12 +74,16 @@ function ScriptReview() {
           <Loader2 className="h-4 w-4 animate-spin" /> Loading scripts…
         </div>
       ) : scripts.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
-          <Check className="h-10 w-10 mx-auto text-success mb-3" />
-          <div className="text-lg font-semibold">All caught up!</div>
-          <div className="text-sm text-muted-foreground mt-1">No scripts waiting for review.</div>
+        <div className="space-y-6">
+          <div className="rounded-lg border border-border bg-card p-12 text-center">
+            <Check className="h-10 w-10 mx-auto text-success mb-3" />
+            <div className="text-lg font-semibold">All caught up!</div>
+            <div className="text-sm text-muted-foreground mt-1">No scripts waiting for review.</div>
+          </div>
+          <ReviewedTable scripts={reviewed} />
         </div>
       ) : (
+        <>
         <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
           {/* Script list */}
           <aside className="rounded-lg border border-border bg-card divide-y divide-border h-fit">
@@ -201,6 +212,8 @@ function ScriptReview() {
             </main>
           )}
         </div>
+        <ReviewedTable scripts={reviewed} />
+        </>
       )}
     </DashboardShell>
   );
@@ -212,5 +225,52 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{title}</div>
       <div className="text-sm text-foreground leading-relaxed">{children}</div>
     </section>
+  );
+}
+
+function ReviewedTable({ scripts }: { scripts: Script[] }) {
+  if (scripts.length === 0) return null;
+  return (
+    <div className="mt-2">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        Recently reviewed
+      </h3>
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Script</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Client</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Agent</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Reviewed</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {scripts.map((s) => (
+              <tr key={s.id} className="hover:bg-muted/20 transition-colors">
+                <td className="px-4 py-3 font-medium truncate max-w-[200px]">{s.name}</td>
+                <td className="px-4 py-3 text-muted-foreground">{s.tenant?.name ?? "—"}</td>
+                <td className="px-4 py-3 text-muted-foreground">{s.agentName}</td>
+                <td className="px-4 py-3">
+                  {s.status === "APPROVED" ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-xs font-medium px-2.5 py-1">
+                      <BadgeCheck className="h-3.5 w-3.5" /> Approved
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive text-xs font-medium px-2.5 py-1">
+                      <Ban className="h-3.5 w-3.5" /> Rejected
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">
+                  {s.reviewedAt ? new Date(s.reviewedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
