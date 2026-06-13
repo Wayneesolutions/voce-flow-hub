@@ -47,7 +47,7 @@ function Campaigns() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [editing, setEditing] = useState<Campaign | null>(null);
-  const [editForm, setEditForm] = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", maxAttempts: "3", retryAfterHours: "24" });
+  const [editForm, setEditForm] = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -124,6 +124,7 @@ function Campaigns() {
       callFromHour: String(c.callFromHour),
       callToHour: String(c.callToHour),
       timezone: c.timezone,
+      callDays: c.callDays,
       maxAttempts: String(c.maxAttempts),
       retryAfterHours: String(c.retryAfterHours),
     });
@@ -279,6 +280,29 @@ function Campaigns() {
                   {TIMEZONES.map((tz) => <option key={tz}>{tz}</option>)}
                 </select>
               </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Call days</label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {["MON","TUE","WED","THU","FRI","SAT","SUN"].map((day) => {
+                    const active = editForm.callDays.split(",").includes(day);
+                    const toggle = () => {
+                      const days = editForm.callDays.split(",").filter(Boolean);
+                      const next = active ? days.filter((d) => d !== day) : [...days, day];
+                      ef("callDays", next.join(","));
+                    };
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={toggle}
+                        className={`h-8 w-12 rounded-md text-xs font-medium border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div>
                 <label className="text-sm font-medium">Max attempts</label>
                 <input
@@ -310,6 +334,7 @@ function Campaigns() {
                   callFromHour: parseInt(editForm.callFromHour),
                   callToHour: parseInt(editForm.callToHour),
                   timezone: editForm.timezone,
+                  callDays: editForm.callDays,
                   maxAttempts: parseInt(editForm.maxAttempts),
                   retryAfterHours: parseInt(editForm.retryAfterHours),
                 })}

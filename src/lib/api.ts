@@ -341,7 +341,7 @@ export const meetingsApi = {
   list: (): Promise<Meeting[]> =>
     http.get("/calls", { params: { outcome: "BOOKED", limit: 100 } }).then((r) =>
       (r.data.calls as Call[])
-        .filter((c) => c.meetingAt)
+        .filter((c) => c.meetingAt || (c as any).scheduledAt)
         .map((c) => ({
           id: c.id,
           leadId: c.leadId,
@@ -349,8 +349,13 @@ export const meetingsApi = {
           leadName: c.lead?.name ?? "Unknown",
           leadCompany: c.lead?.company,
           leadPhone: c.lead?.phone ?? "",
+          calledAt: (c as any).startedAt ?? c.createdAt,
+          bookedAt: c.meetingAt ?? undefined,
+          scheduledAt: (c as any).scheduledAt ?? undefined,
           meetingAt: c.meetingAt!,
           meetingLink: c.meetingLink,
+          summary: (c as any).summary ?? undefined,
+          duration: c.duration ?? undefined,
           createdAt: c.createdAt,
         })),
     ),

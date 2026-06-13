@@ -119,9 +119,14 @@ export interface Meeting {
   leadName: string;
   leadCompany?: string;
   leadPhone: string;
+  calledAt?: string;        // when the agent called
+  bookedAt?: string;        // when the meeting was booked during the call
+  scheduledAt?: string;     // actual scheduled meeting datetime
   meetingAt: string;
   meetingLink?: string;
   calEventId?: string;
+  summary?: string;
+  duration?: number;
   createdAt: string;
 }
 
