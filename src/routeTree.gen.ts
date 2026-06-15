@@ -28,8 +28,12 @@ import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
 import { Route as AdminScriptsRouteImport } from './routes/admin.scripts'
+import { Route as AdminResetPasswordRouteImport } from './routes/admin.reset-password'
+import { Route as AdminProfileRouteImport } from './routes/admin.profile'
+import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminNumbersRouteImport } from './routes/admin.numbers'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-password'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 
@@ -128,6 +132,21 @@ const AdminScriptsRoute = AdminScriptsRouteImport.update({
   path: '/scripts',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminResetPasswordRoute = AdminResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPlansRoute = AdminPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNumbersRoute = AdminNumbersRouteImport.update({
   id: '/numbers',
   path: '/numbers',
@@ -136,6 +155,11 @@ const AdminNumbersRoute = AdminNumbersRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminForgotPasswordRoute = AdminForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminClientsRoute = AdminClientsRouteImport.update({
@@ -161,8 +185,12 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/numbers': typeof AdminNumbersRoute
+  '/admin/plans': typeof AdminPlansRoute
+  '/admin/profile': typeof AdminProfileRoute
+  '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
@@ -184,8 +212,12 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/numbers': typeof AdminNumbersRoute
+  '/admin/plans': typeof AdminPlansRoute
+  '/admin/profile': typeof AdminProfileRoute
+  '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
@@ -210,8 +242,12 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/numbers': typeof AdminNumbersRoute
+  '/admin/plans': typeof AdminPlansRoute
+  '/admin/profile': typeof AdminProfileRoute
+  '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
@@ -237,8 +273,12 @@ export interface FileRouteTypes {
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/numbers'
+    | '/admin/plans'
+    | '/admin/profile'
+    | '/admin/reset-password'
     | '/admin/scripts'
     | '/portal/billing'
     | '/portal/calls'
@@ -260,8 +300,12 @@ export interface FileRouteTypes {
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/numbers'
+    | '/admin/plans'
+    | '/admin/profile'
+    | '/admin/reset-password'
     | '/admin/scripts'
     | '/portal/billing'
     | '/portal/calls'
@@ -285,8 +329,12 @@ export interface FileRouteTypes {
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/numbers'
+    | '/admin/plans'
+    | '/admin/profile'
+    | '/admin/reset-password'
     | '/admin/scripts'
     | '/portal/billing'
     | '/portal/calls'
@@ -446,6 +494,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScriptsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reset-password': {
+      id: '/admin/reset-password'
+      path: '/reset-password'
+      fullPath: '/admin/reset-password'
+      preLoaderRoute: typeof AdminResetPasswordRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/profile': {
+      id: '/admin/profile'
+      path: '/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/plans': {
+      id: '/admin/plans'
+      path: '/plans'
+      fullPath: '/admin/plans'
+      preLoaderRoute: typeof AdminPlansRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/numbers': {
       id: '/admin/numbers'
       path: '/numbers'
@@ -458,6 +527,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/forgot-password': {
+      id: '/admin/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/admin/forgot-password'
+      preLoaderRoute: typeof AdminForgotPasswordRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/clients': {
@@ -480,8 +556,12 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
   AdminClientsRoute: typeof AdminClientsRoute
+  AdminForgotPasswordRoute: typeof AdminForgotPasswordRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminNumbersRoute: typeof AdminNumbersRoute
+  AdminPlansRoute: typeof AdminPlansRoute
+  AdminProfileRoute: typeof AdminProfileRoute
+  AdminResetPasswordRoute: typeof AdminResetPasswordRoute
   AdminScriptsRoute: typeof AdminScriptsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -489,8 +569,12 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
   AdminClientsRoute: AdminClientsRoute,
+  AdminForgotPasswordRoute: AdminForgotPasswordRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminNumbersRoute: AdminNumbersRoute,
+  AdminPlansRoute: AdminPlansRoute,
+  AdminProfileRoute: AdminProfileRoute,
+  AdminResetPasswordRoute: AdminResetPasswordRoute,
   AdminScriptsRoute: AdminScriptsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

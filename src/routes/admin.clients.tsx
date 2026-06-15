@@ -93,12 +93,14 @@ function ClientsPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const suspendMut = useMutation({
-    mutationFn: (id: string) =>
-      adminTenantsApi.update(id, {
-        status: selected?.status === "ACTIVE" ? "PAUSED" : "ACTIVE",
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "tenants"] }),
+  const statusMut = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      adminTenantsApi.update(id, { status }),
+    onSuccess: (_, { status }) => {
+      qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
+      toast.success(`Client ${status === "SUSPENDED" ? "suspended" : status === "PAUSED" ? "paused" : "activated"}`);
+    },
+    onError: () => toast.error("Failed to update status"),
   });
 
   const f = (key: keyof typeof form, val: string) => setForm((p) => ({ ...p, [key]: val }));
@@ -162,7 +164,7 @@ function ClientsPage() {
                       <div className="flex items-center gap-2.5">
                         {t.logoUrl ? (
                           <img
-                            src={t.logoUrl}
+                            src={`/api/public/logo/${t.id}`}
                             alt={t.name}
                             className="h-7 w-7 rounded object-contain border border-border bg-muted/30"
                           />
@@ -209,7 +211,7 @@ function ClientsPage() {
               <div className="relative group">
                 {selected.logoUrl ? (
                   <img
-                    src={selected.logoUrl}
+                    src={`/api/public/logo/${selected.id}`}
                     alt={selected.name}
                     className="h-14 w-14 rounded-lg object-contain border border-border bg-muted/30"
                   />
@@ -266,9 +268,14 @@ function ClientsPage() {
 
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
-                onClick={() => suspendMut.mutate(selected.id)}
-                disabled={suspendMut.isPending}
-                className={`h-9 rounded-md border text-sm hover:opacity-90 disabled:opacity-60 ${
+                onClick={() =>
+                  statusMut.mutate({
+                    id: selected.id,
+                    status: selected.status === "ACTIVE" ? "PAUSED" : "ACTIVE",
+                  })
+                }
+                disabled={statusMut.isPending || selected.status === "SUSPENDED"}
+                className={`h-9 rounded-md border text-sm disabled:opacity-40 ${
                   selected.status === "ACTIVE"
                     ? "border-warning/30 text-warning hover:bg-warning/5"
                     : "border-success/30 text-success hover:bg-success/5"
@@ -277,11 +284,20 @@ function ClientsPage() {
                 {selected.status === "ACTIVE" ? "Pause" : "Activate"}
               </button>
               <button
-                onClick={() => suspendMut.mutate(selected.id)}
-                disabled={suspendMut.isPending}
-                className="h-9 rounded-md border border-destructive/30 text-destructive text-sm hover:bg-destructive/5 disabled:opacity-60"
+                onClick={() =>
+                  statusMut.mutate({
+                    id: selected.id,
+                    status: selected.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED",
+                  })
+                }
+                disabled={statusMut.isPending}
+                className={`h-9 rounded-md border text-sm disabled:opacity-40 ${
+                  selected.status === "SUSPENDED"
+                    ? "border-success/30 text-success hover:bg-success/5"
+                    : "border-destructive/30 text-destructive hover:bg-destructive/5"
+                }`}
               >
-                Suspend
+                {selected.status === "SUSPENDED" ? "Unsuspend" : "Suspend"}
               </button>
             </div>
           </aside>

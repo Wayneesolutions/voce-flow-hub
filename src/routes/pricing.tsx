@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
-import { ArrowRight, BadgeCheck, X } from "lucide-react";
+import { publicPlansApi } from "@/lib/api";
+import type { Plan } from "@/lib/types";
+import { ArrowRight, BadgeCheck, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -16,20 +19,25 @@ export const Route = createFileRoute("/pricing")({
   component: Pricing,
 });
 
-const tiers = [
+// Fallback tiers used while the API loads or if no plans exist in DB yet
+const FALLBACK_TIERS: Plan[] = [
   {
+    id: "starter",
     name: "Starter",
-    price: 0.35,
     blurb: "Test the waters",
-    minutes: "Up to 1,000 talk min/mo",
+    price: 0.35,
+    minutesIncluded: 1000,
     features: ["1 phone number", "1 campaign", "Standard voice", "Email support", "Web dashboard"],
+    isActive: true,
+    isPopular: false,
+    displayOrder: 0,
   },
   {
+    id: "growth",
     name: "Growth",
-    price: 0.3,
     blurb: "Most popular",
-    popular: true,
-    minutes: "Up to 5,000 talk min/mo",
+    price: 0.3,
+    minutesIncluded: 5000,
     features: [
       "5 phone numbers",
       "Unlimited campaigns",
@@ -38,12 +46,16 @@ const tiers = [
       "Calendar + CRM integrations",
       "Account manager on WhatsApp",
     ],
+    isActive: true,
+    isPopular: true,
+    displayOrder: 1,
   },
   {
+    id: "scale",
     name: "Scale",
-    price: 0.25,
     blurb: "Agencies & enterprise",
-    minutes: "5,000+ talk min/mo",
+    price: 0.25,
+    minutesIncluded: 0,
     features: [
       "Custom phone numbers pool",
       "Multi-tenant white-label",
@@ -52,6 +64,9 @@ const tiers = [
       "SLA + priority routing",
       "Dedicated account team",
     ],
+    isActive: true,
+    isPopular: false,
+    displayOrder: 2,
   },
 ];
 
@@ -59,6 +74,14 @@ function Pricing() {
   const [minutes, setMinutes] = useState(2000);
   const [rate, setRate] = useState(0.3);
   const cost = useMemo(() => (minutes * rate).toFixed(0), [minutes, rate]);
+
+  const { data: plans = [], isLoading } = useQuery<Plan[]>({
+    queryKey: ["public", "plans"],
+    queryFn: publicPlansApi.list,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const tiers = plans.length > 0 ? plans : FALLBACK_TIERS;
 
   return (
     <MarketingShell>
@@ -76,43 +99,54 @@ function Pricing() {
       </section>
 
       <section className="container-page py-16">
-        <div className="grid md:grid-cols-3 gap-5">
-          {tiers.map((t) => (
-            <div
-              key={t.name}
-              className={`rounded-xl border bg-card p-6 flex flex-col ${t.popular ? "border-accent ring-2 ring-accent/30" : "border-border"}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">{t.name}</div>
-                {t.popular && (
-                  <span className="text-xs font-semibold uppercase tracking-wide rounded-full bg-accent/10 text-accent px-2.5 py-1">
-                    Most popular
-                  </span>
-                )}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">{t.blurb}</div>
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight">${t.price.toFixed(2)}</span>
-                <span className="text-muted-foreground text-sm">/ talk minute</span>
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">{t.minutes}</div>
-              <ul className="mt-6 space-y-2.5 text-sm flex-1">
-                {t.features.map((f) => (
-                  <li key={f} className="flex gap-2">
-                    <BadgeCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/contact"
-                className={`mt-6 inline-flex h-10 items-center justify-center rounded-md text-sm font-medium ${t.popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-background hover:bg-secondary"}`}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-5">
+            {tiers.map((t) => (
+              <div
+                key={t.id}
+                className={`rounded-xl border bg-card p-6 flex flex-col ${t.isPopular ? "border-accent ring-2 ring-accent/30" : "border-border"}`}
               >
-                Get started <ArrowRight className="h-4 w-4 ml-1.5" />
-              </Link>
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold">{t.name}</div>
+                  {t.isPopular && (
+                    <span className="text-xs font-semibold uppercase tracking-wide rounded-full bg-accent/10 text-accent px-2.5 py-1">
+                      Most popular
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">{t.blurb}</div>
+                <div className="mt-5 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold tracking-tight">${t.price.toFixed(2)}</span>
+                  <span className="text-muted-foreground text-sm">/ talk minute</span>
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  {t.minutesIncluded > 0
+                    ? `Up to ${t.minutesIncluded.toLocaleString()} talk min/mo`
+                    : "Unlimited talk minutes"}
+                </div>
+                <ul className="mt-6 space-y-2.5 text-sm flex-1">
+                  {(t.features as string[]).map((f) => (
+                    <li key={f} className="flex gap-2">
+                      <BadgeCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/register"
+                  search={{ plan: t.id }}
+                  className={`mt-6 inline-flex h-10 items-center justify-center rounded-md text-sm font-medium ${t.isPopular ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-background hover:bg-secondary"}`}
+                >
+                  Get started <ArrowRight className="h-4 w-4 ml-1.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Calculator */}
@@ -148,7 +182,7 @@ function Pricing() {
                 <div className="grid grid-cols-3 gap-2">
                   {tiers.map((t) => (
                     <button
-                      key={t.name}
+                      key={t.id}
                       onClick={() => setRate(t.price)}
                       className={`h-10 text-sm rounded-md border ${rate === t.price ? "border-accent bg-accent/10 text-accent font-medium" : "border-border hover:bg-secondary"}`}
                     >

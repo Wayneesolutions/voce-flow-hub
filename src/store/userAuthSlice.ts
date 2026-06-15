@@ -6,12 +6,20 @@ interface ClientUser {
   role: "user";
 }
 
+interface PlanInfo {
+  id: string;
+  name: string;
+  price: number;
+  minutesIncluded: number;
+}
+
 interface TenantInfo {
   id: string;
   name: string;
   slug: string;
   logoUrl?: string;
   primaryColor: string;
+  plan?: PlanInfo | null;
 }
 
 interface UserAuthState {

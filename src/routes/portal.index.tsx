@@ -103,7 +103,7 @@ function PortalOverview() {
           <div className="text-xs text-muted-foreground">Daily breakdown</div>
           <div className="h-72 mt-4">
             <ResponsiveContainer>
-              <BarChart data={[]} margin={{ left: -10, right: 8 }}>
+              <BarChart data={stats?.callsByDay ?? []} margin={{ left: -10, right: 8 }}>
                 <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="date"

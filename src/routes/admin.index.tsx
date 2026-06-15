@@ -79,9 +79,7 @@ function AdminDashboard() {
       subtitle="Real-time business performance across all clients"
       actions={
         <>
-          <button className="h-9 px-3 rounded-md border border-border bg-background text-sm hover:bg-secondary">
-            Export
-          </button>
+         
           <Link
             to="/admin/clients"
             className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"

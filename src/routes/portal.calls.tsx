@@ -129,6 +129,8 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
     ? call.transcript
         .split("\n")
         .filter(Boolean)
+        // Filter out the [SYSTEM] prompt — it's the full AI instructions, not a conversation turn
+        .filter((line) => !/^\[SYSTEM\]/i.test(line))
         .map((line) => {
           const isAgent = /^\[ASSISTANT\]/i.test(line) || /^\[BOT\]/i.test(line);
           return { who: isAgent ? "ai" : "lead", text: line.replace(/^\[\w+\]\s*/, "") };
@@ -157,20 +159,27 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
         </div>
         {call.meetingAt && (
           <p className="mt-2 text-xs text-muted-foreground">
-            Meeting: {new Date(call.meetingAt).toLocaleString()}
+            Meeting booked · {new Date(call.meetingAt).toLocaleString()}
+          </p>
+        )}
+        {(call as any).scheduledAt && (
+          <p className="mt-1 text-xs text-accent font-medium">
+            Scheduled for · {new Date((call as any).scheduledAt).toLocaleString()}
           </p>
         )}
       </div>
 
+      {(call as any).summary && (
+        <div className="p-5 border-b border-border">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Summary</div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{(call as any).summary}</p>
+        </div>
+      )}
+
       {call.recordingUrl && (
         <div className="p-5 border-b border-border">
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Recording</div>
-          <audio
-            controls
-            src={call.recordingUrl}
-            className="w-full h-9"
-            preload="metadata"
-          />
+          <audio controls src={call.recordingUrl} className="w-full h-9" preload="metadata" />
           <a
             href={call.recordingUrl}
             download
@@ -184,7 +193,7 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
 
       <div className="p-5">
         <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-          Full transcript
+          Transcript
         </div>
         {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         {!loading && lines.length === 0 && (

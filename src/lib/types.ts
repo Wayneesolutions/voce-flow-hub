@@ -119,9 +119,10 @@ export interface Meeting {
   leadName: string;
   leadCompany?: string;
   leadPhone: string;
-  calledAt?: string;        // when the agent called
-  bookedAt?: string;        // when the meeting was booked during the call
-  scheduledAt?: string;     // actual scheduled meeting datetime
+  leadEmail?: string;
+  calledAt?: string;
+  bookedAt?: string;
+  scheduledAt?: string;
   meetingAt: string;
   meetingLink?: string;
   calEventId?: string;
@@ -162,6 +163,7 @@ export interface CallStats {
   totalMinutes: number;
   totalBilled: number;
   conversionRate: number;
+  callsByDay?: { date: string; calls: number; booked: number }[];
 }
 
 export interface BillingSummary {
@@ -179,11 +181,14 @@ export interface TenantPhone {
   number: string;
   friendlyName: string;
   country: string;
-  twilioSid?: string;
-  vapiNumberId?: string;
+  provider: string;
+  twilioSid?: string | null;
+  plivoUuid?: string | null;
+  vapiNumberId?: string | null;
   isDefault: boolean;
   isActive: boolean;
   createdAt: string;
+  tenant?: { id: string; name: string };
 }
 
 export interface Tenant {
@@ -203,6 +208,20 @@ export interface Tenant {
   _count?: { leads: number; calls: number; campaigns: number };
 }
 
+export interface Plan {
+  id: string;
+  name: string;
+  blurb?: string;
+  price: number;
+  minutesIncluded: number;
+  features: string[];
+  isActive: boolean;
+  isPopular: boolean;
+  displayOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AdminStats {
   activeClients: number;
   callsToday: number;
@@ -212,11 +231,26 @@ export interface AdminStats {
 }
 
 export interface AdminBillingSummary {
-  tenant: { id: string; name: string; ratePerMinute: number };
+  tenant: { id: string; name: string; ratePerMinute: number; stripeCustomerId?: string; plan?: { id: string; name: string } | null };
   totalMinutes: number;
   totalRevenue: number;
   platformCost: number;
   grossProfit: number;
+}
+
+export interface AdminNotification {
+  id: string;
+  type: "SCRIPT_REVIEW" | "NEW_CLIENT" | "PAYMENT_FAIL";
+  title: string;
+  body: string;
+  at: string;
+  link: string;
+}
+
+export interface AdminNotificationsResponse {
+  items: AdminNotification[];
+  recentBookings: number;
+  unreadCount: number;
 }
 
 // ── Legacy / settings (kept for mock compat) ────────────────────────────────

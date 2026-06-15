@@ -70,6 +70,7 @@ function LoginPage() {
                 slug: res.tenant.slug,
                 logoUrl: res.tenant.logoUrl,
                 primaryColor: res.tenant.primaryColor,
+                plan: res.tenant.plan ?? null,
               }
             : undefined,
         }),

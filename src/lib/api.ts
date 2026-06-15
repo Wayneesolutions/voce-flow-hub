@@ -65,7 +65,7 @@ export const authApi = {
   tenantLogin: async (
     email: string,
     password: string,
-  ): Promise<{ token: string; user: { id: string; name: string; email: string; role: string }; tenant: { id: string; name: string; slug: string; logoUrl?: string; primaryColor: string } }> => {
+  ): Promise<{ token: string; user: { id: string; name: string; email: string; role: string }; tenant: { id: string; name: string; slug: string; logoUrl?: string; primaryColor: string; plan?: { id: string; name: string; price: number; minutesIncluded: number } | null } }> => {
     const res = await http.post("/auth/tenant/login", { email, password });
     return res.data;
   },
@@ -89,6 +89,25 @@ export const authApi = {
       };
     }
   },
+
+  forgotPassword: (email: string): Promise<{ message: string }> =>
+    publicHttp.post("/auth/admin/forgot-password", { email }).then((r) => r.data),
+
+  resetPassword: (token: string, password: string): Promise<{ message: string }> =>
+    publicHttp.post("/auth/admin/reset-password", { token, password }).then((r) => r.data),
+};
+
+export const adminProfileApi = {
+  get: (): Promise<{ id: string; name: string; email: string; createdAt: string }> =>
+    adminHttp.get("/auth/admin/profile").then((r) => r.data),
+
+  update: (data: {
+    name?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<{ id: string; name: string; email: string; createdAt: string }> =>
+    adminHttp.patch("/auth/admin/profile", data).then((r) => r.data),
 };
 
 // ── Admin: Stats ──────────────────────────────────────────────────────────────
@@ -136,29 +155,6 @@ export const adminTenantsApi = {
   },
 };
 
-// ── Admin: Phone Numbers ──────────────────────────────────────────────────────
-
-export const adminNumbersApi = {
-  listByTenant: (tenantId: string): Promise<TenantPhone[]> =>
-    adminHttp.get(`/admin/tenants/${tenantId}/numbers`).then((r) => r.data),
-
-  assign: (
-    tenantId: string,
-    data: {
-      number: string;
-      friendlyName?: string;
-      country: string;
-      twilioSid?: string;
-      vapiNumberId?: string;
-      isDefault?: boolean;
-    },
-  ): Promise<TenantPhone> =>
-    adminHttp.post(`/admin/tenants/${tenantId}/numbers`, data).then((r) => r.data),
-
-  remove: (tenantId: string, numberId: string): Promise<void> =>
-    adminHttp.delete(`/admin/tenants/${tenantId}/numbers/${numberId}`).then((r) => r.data),
-};
-
 // ── Admin: Scripts review ─────────────────────────────────────────────────────
 
 export const adminScriptsApi = {
@@ -180,6 +176,120 @@ export const adminScriptsApi = {
 export const adminBillingApi = {
   summary: (month?: string): Promise<AdminBillingSummary[]> =>
     adminHttp.get("/admin/billing/summary", { params: { month } }).then((r) => r.data),
+
+  sendInvoice: (tenantId: string, month: string): Promise<{
+    invoiceId: string; amount: number; status: string;
+    hostedUrl: string; pdfUrl: string; description: string;
+  }> => adminHttp.post("/admin/billing/invoice", { tenantId, month }).then((r) => r.data),
+};
+
+export const adminNotificationsApi = {
+  get: (): Promise<import("./types").AdminNotificationsResponse> =>
+    adminHttp.get("/admin/notifications").then((r) => r.data),
+};
+
+// ── Admin: Global search ──────────────────────────────────────────────────────
+export interface AdminSearchResult {
+  clients: { id: string; name: string; ownerEmail: string; status: string }[];
+  scripts: { id: string; title: string; status: string; tenant: { id: string; name: string } }[];
+  leads:   { id: string; name: string; phone: string; status: string; campaign: { tenant: { id: string; name: string } } | null }[];
+}
+export const adminSearchApi = {
+  search: (q: string): Promise<AdminSearchResult> =>
+    adminHttp.get(`/admin/search?q=${encodeURIComponent(q)}`).then((r) => r.data),
+};
+
+// ── Admin: Plans ──────────────────────────────────────────────────────────────
+
+export const adminPlansApi = {
+  list: (): Promise<import("./types").Plan[]> =>
+    adminHttp.get("/admin/plans").then((r) => r.data),
+
+  create: (data: {
+    name: string;
+    blurb?: string;
+    price: number;
+    minutesIncluded?: number;
+    features: string[];
+    isActive?: boolean;
+    isPopular?: boolean;
+    displayOrder?: number;
+  }): Promise<import("./types").Plan> =>
+    adminHttp.post("/admin/plans", data).then((r) => r.data),
+
+  update: (id: string, data: Partial<import("./types").Plan>): Promise<import("./types").Plan> =>
+    adminHttp.patch(`/admin/plans/${id}`, data).then((r) => r.data),
+
+  remove: (id: string): Promise<void> =>
+    adminHttp.delete(`/admin/plans/${id}`).then((r) => r.data),
+};
+
+// ── Admin: Phone Numbers ──────────────────────────────────────────────────────
+
+export type { TenantPhone } from "./types";
+
+export interface AvailableNumber {
+  number: string;
+  friendlyName: string;
+  country: string;
+  provider: string;
+  locality: string;
+  region: string;
+  monthlyPrice: string | null;
+}
+
+export const adminNumbersApi = {
+  listAll: (): Promise<TenantPhone[]> =>
+    adminHttp.get("/admin/numbers").then((r) => r.data),
+
+  search: (params: {
+    provider: string;
+    country: string;
+    areaCode?: string;
+    contains?: string;
+    pattern?: string;
+  }): Promise<AvailableNumber[]> => {
+    const q = new URLSearchParams(params as Record<string, string>);
+    return adminHttp.get(`/admin/numbers/search?${q}`).then((r) => r.data);
+  },
+
+  buy: (data: {
+    number: string;
+    provider: string;
+    country: string;
+    tenantId: string;
+    isDefault?: boolean;
+  }): Promise<TenantPhone> =>
+    adminHttp.post("/admin/numbers/buy", data).then((r) => r.data),
+
+  remove: (numberId: string): Promise<void> =>
+    adminHttp.delete(`/admin/numbers/${numberId}`).then((r) => r.data),
+};
+
+// ── Public: Plans (no auth) ────────────────────────────────────────────────────
+
+// Plain axios instance — no auth token needed
+const publicHttp = axios.create({ baseURL: "/api", headers: { "Content-Type": "application/json" }, timeout: 10000 });
+
+export const publicPlansApi = {
+  list: (): Promise<import("./types").Plan[]> =>
+    publicHttp.get("/public/plans").then((r) => r.data),
+};
+
+// ── Self-service registration ────────────────────────────────────────────────
+
+export const registerApi = {
+  signup: (data: {
+    name: string;
+    company: string;
+    email: string;
+    password: string;
+    planId?: string;
+  }): Promise<{
+    token: string;
+    user: { id: string; name: string; email: string; role: string };
+    tenant: { id: string; name: string; slug: string; logoUrl?: string; primaryColor: string };
+  }> => publicHttp.post("/auth/register", data).then((r) => r.data),
 };
 
 // ── Client portal: Dashboard stats ───────────────────────────────────────────
@@ -349,6 +459,7 @@ export const meetingsApi = {
           leadName: c.lead?.name ?? "Unknown",
           leadCompany: c.lead?.company,
           leadPhone: c.lead?.phone ?? "",
+          leadEmail: (c.lead as any)?.email ?? undefined,
           calledAt: (c as any).startedAt ?? c.createdAt,
           bookedAt: c.meetingAt ?? undefined,
           scheduledAt: (c as any).scheduledAt ?? undefined,

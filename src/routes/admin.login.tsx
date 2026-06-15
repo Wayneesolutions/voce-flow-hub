@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { ShieldCheck, Eye, EyeOff } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { setAdmin } from "@/store/adminAuthSlice";
 import { authApi } from "@/lib/api";
 import axios from "axios";
@@ -13,7 +13,6 @@ export const Route = createFileRoute("/admin/login")({
 
 function AdminLoginPage() {
   const dispatch = useAppDispatch();
-  const admin = useAppSelector((s) => s.adminAuth.user);
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -21,11 +20,6 @@ function AdminLoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  if (admin) {
-    navigate({ to: "/admin" });
-    return null;
-  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -73,7 +67,15 @@ function AdminLoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1.5">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium">Password</label>
+                <Link
+                  to="/admin/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
