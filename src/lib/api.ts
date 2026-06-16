@@ -140,7 +140,7 @@ export const adminTenantsApi = {
 
   update: (
     id: string,
-    data: Partial<Pick<Tenant, "name" | "status" | "ratePerMinute" | "primaryColor" | "domain" | "logoUrl">>,
+    data: Partial<Pick<Tenant, "name" | "status" | "ratePerMinute" | "primaryColor" | "domain" | "logoUrl"> & { planId?: string | null; clonedVoiceId?: string | null; clonedVoiceName?: string | null }>,
   ): Promise<Tenant> =>
     adminHttp.patch(`/admin/tenants/${id}`, data).then((r) => r.data),
 
@@ -249,7 +249,8 @@ export const adminNumbersApi = {
     contains?: string;
     pattern?: string;
   }): Promise<AvailableNumber[]> => {
-    const q = new URLSearchParams(params as Record<string, string>);
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== "") q.set(k, String(v)); });
     return adminHttp.get(`/admin/numbers/search?${q}`).then((r) => r.data);
   },
 
@@ -347,6 +348,9 @@ export const leadsApi = {
   optOut: (leadId: string): Promise<void> =>
     http.delete(`/leads/${leadId}`).then((r) => r.data),
 
+  reset: (leadId: string): Promise<void> =>
+    http.patch(`/leads/${leadId}/reset`).then((r) => r.data),
+
   unassignedCount: (): Promise<{ count: number }> =>
     http.get("/leads/unassigned-count").then((r) => r.data),
 };
@@ -381,6 +385,24 @@ export const callsApi = {
   },
 };
 
+// ── Client portal: Voices ─────────────────────────────────────────────────────
+
+export interface ElevenLabsVoice {
+  id: string;
+  name: string;
+  category: "premade" | "cloned" | "generated";
+  gender: string | null;
+  accent: string | null;
+  language: string | null;
+  description: string | null;
+  previewUrl: string | null;
+}
+
+export const voicesApi = {
+  list: (): Promise<ElevenLabsVoice[]> =>
+    http.get("/scripts/voices").then((r) => r.data),
+};
+
 // ── Client portal: Scripts ────────────────────────────────────────────────────
 
 export const scriptsApi = {
@@ -395,6 +417,7 @@ export const scriptsApi = {
     objections?: string;
     agentName?: string;
     voiceId?: string;
+    language?: string;
   }): Promise<Script> =>
     http.post("/scripts", data).then((r) => r.data),
 
@@ -527,6 +550,9 @@ export interface TenantMe {
   hasCalcom: boolean;
   hasHubspot: boolean;
   hasGcal: boolean;
+  clonedVoiceId: string | null;
+  clonedVoiceName: string | null;
+  plan: { id: string; name: string; price: number; minutesIncluded: number; features: string[] } | null;
 }
 
 export interface IntegrationUpdate {
@@ -540,6 +566,29 @@ export const tenantApi = {
   me: (): Promise<TenantMe> =>
     http.get("/tenant/me").then((r) => r.data),
 
+  selectPlan: (planId: string): Promise<{ plan: { id: string; name: string; price: number; minutesIncluded: number } }> =>
+    http.post("/tenant/plan", { planId }).then((r) => r.data),
+
+  startPlanCheckout: (planId: string): Promise<{ url?: string; upgraded?: boolean }> =>
+    http.post("/stripe/checkout", { planId }, { timeout: 30_000 }).then((r) => r.data),
+
   updateIntegrations: (data: IntegrationUpdate): Promise<{ message: string }> =>
     http.patch("/tenant/integrations", data).then((r) => r.data),
+};
+
+// ── Client portal: Voice cloning ─────────────────────────────────────────────
+
+export const portalVoiceApi = {
+  upload: (file: File, name: string): Promise<{ voiceId: string; voiceName: string }> => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("name", name);
+    return http.post("/tenant/voice", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120_000,
+    }).then((r) => r.data);
+  },
+
+  remove: (): Promise<{ message: string }> =>
+    http.delete("/tenant/voice").then((r) => r.data),
 };

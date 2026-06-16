@@ -83,6 +83,7 @@ export interface Script {
   faqDocument?: string;
   agentName: string;
   voiceId?: string;
+  language?: string;
   status: ScriptStatus;
   reviewNote?: string;
   isActive: boolean;
@@ -204,6 +205,9 @@ export interface Tenant {
   primaryColor: string;
   domain?: string;
   createdAt: string;
+  clonedVoiceId?: string | null;
+  clonedVoiceName?: string | null;
+  plan?: { id: string; name: string; price: number; minutesIncluded: number } | null;
   phoneNumbers?: TenantPhone[];
   _count?: { leads: number; calls: number; campaigns: number };
 }

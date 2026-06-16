@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { callStatsApi, callsApi } from "@/lib/api";
-import { CalendarCheck2, PhoneCall, PhoneIncoming, TrendingUp } from "lucide-react";
+import { callStatsApi, callsApi, tenantApi, billingApi } from "@/lib/api";
+import type { TenantMe } from "@/lib/api";
+import type { BillingSummary } from "@/lib/types";
+import { CalendarCheck2, PhoneCall, PhoneIncoming, TrendingUp, BadgeCheck, ArrowRight, Zap, Package, AlertTriangle } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -32,6 +34,18 @@ const OUTCOME_COLORS: Record<string, string> = {
 };
 
 function PortalOverview() {
+  const { data: me } = useQuery<TenantMe>({
+    queryKey: ["tenant-me"],
+    queryFn: tenantApi.me,
+    staleTime: 60_000,
+  });
+
+  const { data: billing } = useQuery<BillingSummary>({
+    queryKey: ["portal-billing-summary"],
+    queryFn: () => billingApi.summary(),
+    staleTime: 5 * 60_000,
+  });
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["call-stats"],
     queryFn: () => callStatsApi.get(),
@@ -69,7 +83,11 @@ function PortalOverview() {
   const callbackCount = stats?.callback ?? 0;
 
   return (
-    <DashboardShell sidebar={null} title="Overview" subtitle="Today's calling performance">
+    <DashboardShell sidebar={null} title="Overview" subtitle={me?.plan ? `${me.plan.name} plan · Today's performance` : "Today's calling performance"}>
+      {me?.plan && (
+        <PlanStatusCard me={me} billing={billing} />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total calls"
@@ -216,6 +234,146 @@ function PortalOverview() {
         </div>
       </div>
     </DashboardShell>
+  );
+}
+
+function PlanStatusCard({ me, billing }: { me: TenantMe; billing?: BillingSummary }) {
+  const plan = me.plan!;
+  const usedMinutes  = billing?.totalMinutes ?? 0;
+  const totalMinutes = plan.minutesIncluded;
+  const pct          = totalMinutes > 0 ? Math.min((usedMinutes / totalMinutes) * 100, 100) : 0;
+  const remaining    = Math.max(totalMinutes - usedMinutes, 0);
+  const monthlyTotal = plan.price > 0 ? `$${(plan.price * plan.minutesIncluded).toFixed(0)}/mo` : "Free";
+
+  const barColor =
+    pct >= 90 ? "bg-destructive" :
+    pct >= 70 ? "bg-warning" :
+    "bg-success";
+
+  const statusBadge =
+    pct >= 90 ? { label: "Critical", cls: "bg-destructive/10 text-destructive" } :
+    pct >= 70 ? { label: "Running low", cls: "bg-warning/10 text-warning" } :
+    { label: "Active", cls: "bg-success/10 text-success" };
+
+  const features = plan.features;
+
+  return (
+    <div className="mb-6 rounded-xl border border-border bg-card overflow-hidden">
+      {/* Header row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm">{plan.name} Plan</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusBadge.cls}`}>
+                {pct >= 90 ? <AlertTriangle className="h-2.5 w-2.5" /> : <Zap className="h-2.5 w-2.5" />}
+                {statusBadge.label}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {plan.price === 0 ? "Free tier" : `$${plan.price.toFixed(2)}/min · ${monthlyTotal}`}
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/portal/billing"
+          search={{ checkout: undefined }}
+          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary transition-colors"
+        >
+          Manage plan <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {/* Body */}
+      <div className="px-5 py-4 grid gap-5 lg:grid-cols-2">
+        {/* Left: minutes usage */}
+        <div>
+          <div className="flex items-end justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Minutes this month</span>
+            <span className="text-xs font-semibold tabular-nums">
+              {usedMinutes.toFixed(0)} / {totalMinutes.toLocaleString()} min
+            </span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+
+          <div className="mt-2 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">{pct.toFixed(0)}% used</span>
+            <span className={
+              remaining === 0
+                ? "text-destructive font-medium"
+                : remaining < totalMinutes * 0.1
+                ? "text-warning font-medium"
+                : "text-muted-foreground"
+            }>
+              {remaining === 0
+                ? "Limit reached"
+                : `${remaining.toFixed(0)} min remaining`}
+            </span>
+          </div>
+
+          {/* Usage breakdown */}
+          {billing && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-muted/50 px-3 py-2.5">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Used</div>
+                <div className="text-base font-bold tabular-nums mt-0.5">{usedMinutes.toFixed(1)} min</div>
+                <div className="text-[11px] text-muted-foreground">${billing.totalAmount.toFixed(2)} billed</div>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-3 py-2.5">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Remaining</div>
+                <div className="text-base font-bold tabular-nums mt-0.5">{remaining.toFixed(0)} min</div>
+                <div className="text-[11px] text-muted-foreground">
+                  ~${(remaining * plan.price).toFixed(2)} value left
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right: features */}
+        {features.length > 0 && (
+          <div>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Included features</span>
+            <ul className="mt-2 space-y-1.5">
+              {features.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm">
+                  <BadgeCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                  <span className="text-foreground/80">{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Warning footer when near limit */}
+      {pct >= 80 && (
+        <div className={`px-5 py-3 border-t border-border flex items-center justify-between ${pct >= 90 ? "bg-destructive/5" : "bg-warning/5"}`}>
+          <p className={`text-xs font-medium ${pct >= 90 ? "text-destructive" : "text-warning"}`}>
+            {pct >= 90
+              ? "You've used 90%+ of your plan minutes. Upgrade to avoid interruptions."
+              : "You're approaching your monthly minute limit. Consider upgrading soon."}
+          </p>
+          <Link
+            to="/portal/billing"
+            search={{ checkout: undefined }}
+            className={`text-xs font-semibold hover:underline shrink-0 ml-4 ${pct >= 90 ? "text-destructive" : "text-warning"}`}
+          >
+            Upgrade now →
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }
 

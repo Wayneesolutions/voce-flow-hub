@@ -20,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PortalVoiceRouteImport } from './routes/portal.voice'
 import { Route as PortalSettingsRouteImport } from './routes/portal.settings'
 import { Route as PortalScriptsRouteImport } from './routes/portal.scripts'
 import { Route as PortalMeetingsRouteImport } from './routes/portal.meetings'
@@ -91,6 +92,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const PortalVoiceRoute = PortalVoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PortalSettingsRoute = PortalSettingsRouteImport.update({
   id: '/settings',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
+  '/portal/voice': typeof PortalVoiceRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
 }
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
+  '/portal/voice': typeof PortalVoiceRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
 }
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
+  '/portal/voice': typeof PortalVoiceRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
 }
@@ -287,6 +296,7 @@ export interface FileRouteTypes {
     | '/portal/meetings'
     | '/portal/scripts'
     | '/portal/settings'
+    | '/portal/voice'
     | '/admin/'
     | '/portal/'
   fileRoutesByTo: FileRoutesByTo
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/portal/meetings'
     | '/portal/scripts'
     | '/portal/settings'
+    | '/portal/voice'
     | '/admin'
     | '/portal'
   id:
@@ -343,6 +354,7 @@ export interface FileRouteTypes {
     | '/portal/meetings'
     | '/portal/scripts'
     | '/portal/settings'
+    | '/portal/voice'
     | '/admin/'
     | '/portal/'
   fileRoutesById: FileRoutesById
@@ -437,6 +449,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/portal/voice': {
+      id: '/portal/voice'
+      path: '/voice'
+      fullPath: '/portal/voice'
+      preLoaderRoute: typeof PortalVoiceRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/portal/settings': {
       id: '/portal/settings'
@@ -589,6 +608,7 @@ interface PortalRouteChildren {
   PortalMeetingsRoute: typeof PortalMeetingsRoute
   PortalScriptsRoute: typeof PortalScriptsRoute
   PortalSettingsRoute: typeof PortalSettingsRoute
+  PortalVoiceRoute: typeof PortalVoiceRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
@@ -600,6 +620,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalMeetingsRoute: PortalMeetingsRoute,
   PortalScriptsRoute: PortalScriptsRoute,
   PortalSettingsRoute: PortalSettingsRoute,
+  PortalVoiceRoute: PortalVoiceRoute,
   PortalIndexRoute: PortalIndexRoute,
 }
 

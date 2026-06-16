@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { scriptsApi } from "@/lib/api";
+import { scriptsApi, voicesApi } from "@/lib/api";
+import type { ElevenLabsVoice } from "@/lib/api";
 import type { Script } from "@/lib/types";
 import {
   Plus,
@@ -13,6 +14,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
+  Search,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,18 +24,30 @@ export const Route = createFileRoute("/portal/scripts")({
   component: Scripts,
 });
 
-const VOICES = [
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Alex", desc: "Warm · Male · EN-US" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Maya", desc: "Friendly · Female · EN-CA" },
-  { id: "pNInz6obpgDQGcFmaJgB", name: "Omar", desc: "Confident · Male · EN-AE" },
-];
-
 const STATUS_CONFIG: Record<string, { label: string; cls: string; Icon: React.ElementType }> = {
   PENDING_REVIEW: { label: "Pending review", cls: "bg-warning/10 text-warning", Icon: Clock },
   APPROVED: { label: "Approved", cls: "bg-success/10 text-success", Icon: CheckCircle2 },
   LIVE: { label: "Live", cls: "bg-success/10 text-success", Icon: CheckCircle2 },
   REJECTED: { label: "Rejected", cls: "bg-destructive/10 text-destructive", Icon: AlertTriangle },
 };
+
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi (हिन्दी)" },
+  { code: "es", label: "Spanish (Español)" },
+  { code: "fr", label: "French (Français)" },
+  { code: "de", label: "German (Deutsch)" },
+  { code: "pt", label: "Portuguese (Português)" },
+  { code: "ar", label: "Arabic (العربية)" },
+  { code: "zh", label: "Chinese (中文)" },
+  { code: "ja", label: "Japanese (日本語)" },
+  { code: "ko", label: "Korean (한국어)" },
+  { code: "ru", label: "Russian (Русский)" },
+  { code: "it", label: "Italian (Italiano)" },
+  { code: "nl", label: "Dutch (Nederlands)" },
+  { code: "tr", label: "Turkish (Türkçe)" },
+  { code: "pl", label: "Polish (Polski)" },
+];
 
 const defaultForm = {
   name: "",
@@ -42,6 +57,7 @@ const defaultForm = {
   goalText: "",
   objections: "",
   voiceId: "",
+  language: "en",
 };
 
 function Scripts() {
@@ -52,12 +68,26 @@ function Scripts() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [faqScriptId, setFaqScriptId] = useState<string | null>(null);
   const [uploadingFaq, setUploadingFaq] = useState(false);
+  const [voiceSearch, setVoiceSearch] = useState("");
 
   const { data: scripts = [], isLoading } = useQuery<Script[]>({
     queryKey: ["scripts"],
     queryFn: scriptsApi.list,
     refetchInterval: 30_000,
   });
+
+  const { data: voices = [], isLoading: voicesLoading } = useQuery<ElevenLabsVoice[]>({
+    queryKey: ["voices"],
+    queryFn: voicesApi.list,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const filteredVoices = voices.filter((v) =>
+    !voiceSearch ||
+    v.name.toLowerCase().includes(voiceSearch.toLowerCase()) ||
+    (v.language ?? "").toLowerCase().includes(voiceSearch.toLowerCase()) ||
+    (v.accent ?? "").toLowerCase().includes(voiceSearch.toLowerCase())
+  );
 
   const selected = scripts.find((s) => s.id === selectedId) ?? scripts[0] ?? null;
 
@@ -71,6 +101,7 @@ function Scripts() {
         goalText: form.goalText,
         objections: form.objections || undefined,
         voiceId: form.voiceId || undefined,
+        language: form.language || "en",
       }),
     onSuccess: (script) => {
       qc.invalidateQueries({ queryKey: ["scripts"] });
@@ -215,10 +246,15 @@ function Scripts() {
                 {selected.voiceId && (
                   <ScriptSection title="Voice">
                     <p>
-                      {VOICES.find((v) => v.id === selected.voiceId)?.name ?? selected.voiceId}
+                      {voices.find((v) => v.id === selected.voiceId)?.name ?? selected.voiceId}
                     </p>
                   </ScriptSection>
                 )}
+                <ScriptSection title="Call language">
+                  <p>
+                    {LANGUAGES.find((l) => l.code === (selected.language || "en"))?.label ?? "English"}
+                  </p>
+                </ScriptSection>
                 <ScriptSection title="FAQ document">
                   {selected.faqDocument ? (
                     <div className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm">
@@ -285,6 +321,21 @@ function Scripts() {
                 />
               </div>
               <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Call language</label>
+                <select
+                  value={form.language}
+                  onChange={(e) => f("language", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The AI will speak in this language and transcribe responses in it.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
                 <label className="text-sm font-medium">Company information</label>
                 <textarea
                   rows={3}
@@ -331,23 +382,69 @@ function Scripts() {
                 <label className="text-sm font-medium">
                   Voice <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2 mt-1.5">
-                  {VOICES.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => f("voiceId", form.voiceId === v.id ? "" : v.id)}
-                      className={`rounded-md border p-3 text-left transition-colors ${
-                        form.voiceId === v.id
-                          ? "border-accent bg-accent/5"
-                          : "border-border hover:bg-muted/40"
-                      }`}
-                    >
-                      <div className="text-sm font-medium">{v.name}</div>
-                      <div className="text-xs text-muted-foreground">{v.desc}</div>
-                    </button>
-                  ))}
+                <div className="mt-1.5 relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    value={voiceSearch}
+                    onChange={(e) => setVoiceSearch(e.target.value)}
+                    placeholder="Search by name, language, accent…"
+                    className="w-full h-9 pl-8 pr-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  />
                 </div>
+                {voicesLoading ? (
+                  <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading voices…
+                  </div>
+                ) : (
+                  <div className="mt-2 max-h-48 overflow-y-auto grid grid-cols-2 gap-1.5 pr-0.5">
+                    {filteredVoices.map((v) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => f("voiceId", form.voiceId === v.id ? "" : v.id)}
+                        className={`rounded-md border p-3 text-left transition-colors ${
+                          form.voiceId === v.id
+                            ? "border-accent bg-accent/5"
+                            : "border-border hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {v.category === "cloned" && (
+                            <Mic className="h-3 w-3 text-green-500 shrink-0" />
+                          )}
+                          <span className="text-sm font-medium truncate">{v.name}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {[v.gender, v.accent, v.language].filter(Boolean).join(" · ") || v.category}
+                        </div>
+                        {v.category === "cloned" && (
+                          <span className="inline-block mt-1 text-[10px] font-medium bg-green-500/10 text-green-600 rounded px-1.5 py-0.5">
+                            Your voice
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                    {filteredVoices.length === 0 && (
+                      <div className="col-span-2 py-6 text-center text-sm text-muted-foreground">
+                        No voices match "{voiceSearch}"
+                      </div>
+                    )}
+                  </div>
+                )}
+                {form.voiceId && (
+                  <div className="mt-1.5 text-xs text-muted-foreground">
+                    Selected: <span className="font-medium text-foreground">
+                      {voices.find((v) => v.id === form.voiceId)?.name ?? form.voiceId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => f("voiceId", "")}
+                      className="ml-2 text-destructive hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             {createMut.isError && (

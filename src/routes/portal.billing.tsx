@@ -1,20 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { billingApi } from "@/lib/api";
-import { Timer, DollarSign, PhoneCall, Receipt, Loader2, ExternalLink, FileText, CreditCard, CheckCircle2, Package, Zap } from "lucide-react";
+import { billingApi, tenantApi, publicPlansApi } from "@/lib/api";
+import type { Plan } from "@/lib/types";
+import { Timer, DollarSign, PhoneCall, Receipt, Loader2, ExternalLink, FileText, CreditCard, CheckCircle2, Package, Zap, BadgeCheck, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { useAppSelector } from "@/store/hooks";
+import { toast } from "sonner";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
   : null;
 
 export const Route = createFileRoute("/portal/billing")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    checkout: typeof s.checkout === "string" ? s.checkout : undefined,
+  }),
   head: () => ({ meta: [{ title: "Billing · Client Portal" }] }),
   component: PortalBilling,
 });
@@ -50,7 +54,68 @@ interface StripeInvoice {
 
 function PortalBilling() {
   const qc = useQueryClient();
-  const plan = useAppSelector((s) => s.userAuth.tenant?.plan);
+  const { checkout } = useSearch({ from: "/portal/billing" });
+  const navigate = useNavigate({ from: "/portal/billing" });
+
+  const { data: me, refetch: refetchMe } = useQuery({
+    queryKey: ["tenant-me"],
+    queryFn: tenantApi.me,
+    staleTime: 60_000,
+  });
+  const plan = me?.plan ?? null;
+
+  // Handle return from Stripe Checkout
+  useEffect(() => {
+    if (!checkout) return;
+    if (checkout === "success") {
+      toast.success("Payment successful! Your plan is now active.");
+      setTimeout(() => refetchMe(), 2000);
+    } else if (checkout === "cancelled") {
+      toast.info("Checkout cancelled — no charge was made.");
+    }
+    // Remove query param from URL so it doesn't re-fire on page refresh
+    navigate({ search: { checkout: undefined }, replace: true });
+  }, [checkout]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { data: allPlans = [], isLoading: plansLoading } = useQuery<Plan[]>({
+    queryKey: ["public", "plans"],
+    queryFn: publicPlansApi.list,
+    staleTime: 5 * 60_000,
+  });
+
+  // Free plans assign directly; paid plans go through Stripe checkout
+  const selectablePlans = allPlans.filter((p) => p.minutesIncluded > 0); // exclude unlimited (contact sales)
+
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+
+  const handleSelectPlan = async (p: Plan) => {
+    if (p.id === plan?.id) return;
+    setCheckingOut(p.id);
+    try {
+      if (p.price === 0) {
+        // Free plan — assign directly
+        await tenantApi.selectPlan(p.id);
+        await refetchMe();
+        toast.success(`Switched to ${p.name} plan`);
+      } else {
+        // Paid plan — go through Stripe
+        const result = await tenantApi.startPlanCheckout(p.id);
+        if (result.upgraded) {
+          // Already had a subscription — upgraded inline
+          await refetchMe();
+          toast.success(`Upgraded to ${p.name} plan`);
+        } else if (result.url) {
+          window.location.href = result.url;
+        }
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? "Something went wrong";
+      toast.error(msg);
+    } finally {
+      setCheckingOut(null);
+    }
+  };
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ["portal-billing-summary"],
@@ -87,53 +152,130 @@ function PortalBilling() {
   return (
     <DashboardShell sidebar={null} title="Billing" subtitle="Usage and invoice history">
 
-      {/* Current plan */}
+      {/* Current plan + plan picker */}
       <div className="rounded-xl border border-border bg-card overflow-hidden mb-6">
         <div className="p-5 border-b border-border flex items-center gap-2 font-semibold">
           <Package className="h-4 w-4 text-muted-foreground" />
-          Current plan
+          {plan ? "Your plan" : "Choose a plan"}
         </div>
-        {plan ? (
-          <div className="p-5 flex flex-wrap items-center gap-6">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Plan</p>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">{plan.name}</span>
-                {plan.price === 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-[11px] font-semibold px-2 py-0.5">
-                    <Zap className="h-3 w-3" /> Free Trial
-                  </span>
-                )}
-              </div>
+
+        {/* Active plan summary strip */}
+        {plan && (
+          <div className="px-5 py-4 border-b border-border bg-accent/5 flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">{plan.name}</span>
+              {plan.price === 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-[11px] font-semibold px-2 py-0.5">
+                  <Zap className="h-3 w-3" /> Free Trial
+                </span>
+              )}
             </div>
-            <div className="h-8 w-px bg-border hidden sm:block" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Rate per minute</p>
-              <p className="text-lg font-bold">
-                {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}`}
-              </p>
+            <div className="h-6 w-px bg-border hidden sm:block" />
+            <div className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">
+                {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}/min`}
+              </span>
+              {" · "}
+              {plan.minutesIncluded === 0 ? "Unlimited minutes" : `${plan.minutesIncluded.toLocaleString()} min included`}
             </div>
-            <div className="h-8 w-px bg-border hidden sm:block" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Included minutes</p>
-              <p className="text-lg font-bold">
-                {plan.minutesIncluded === 0 ? "Unlimited" : plan.minutesIncluded.toLocaleString()}
-              </p>
-            </div>
-            <div className="ml-auto">
-              <a
-                href="mailto:support@waynesolutions.com"
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-border bg-background text-sm font-medium hover:bg-secondary transition-colors"
-              >
-                Contact us to upgrade
-              </a>
-            </div>
-          </div>
-        ) : (
-          <div className="p-5 text-sm text-muted-foreground">
-            No plan assigned. Contact <a href="mailto:support@waynesolutions.com" className="text-primary hover:underline">support@waynesolutions.com</a> to get set up.
           </div>
         )}
+
+        {/* All plans grid */}
+        <div className="p-5">
+          {!plan && (
+            <p className="text-sm text-muted-foreground mb-4">
+              Select a plan below to get started. Your AI agent will use this rate per talk minute.
+            </p>
+          )}
+          {plansLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading plans…
+            </div>
+          ) : selectablePlans.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No plans available yet. Contact{" "}
+              <a href="mailto:support@waynesolutions.com" className="text-primary hover:underline">
+                support@waynesolutions.com
+              </a>{" "}
+              to get set up.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {selectablePlans.map((p) => {
+                const isCurrent = plan?.id === p.id;
+                const isPending = checkingOut === p.id;
+                const monthlyTotal = p.price > 0
+                  ? `$${(p.price * p.minutesIncluded).toFixed(0)}/mo`
+                  : "Free";
+                return (
+                  <div
+                    key={p.id}
+                    className={`rounded-lg border p-4 flex flex-col gap-3 transition-colors ${
+                      isCurrent
+                        ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                        : "border-border hover:border-accent/40"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{p.name}</span>
+                        {p.isPopular && !isCurrent && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-accent/10 text-accent px-2 py-0.5">
+                            Popular
+                          </span>
+                        )}
+                        {isCurrent && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-success/10 text-success px-2 py-0.5 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Active
+                          </span>
+                        )}
+                      </div>
+                      {p.blurb && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{p.blurb}</p>
+                      )}
+                      <div className="mt-2 flex items-baseline gap-1">
+                        <span className="text-2xl font-bold">{monthlyTotal}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {p.price > 0
+                          ? `${p.minutesIncluded.toLocaleString()} min · $${p.price.toFixed(2)}/min`
+                          : `${p.minutesIncluded.toLocaleString()} min included`}
+                      </p>
+                    </div>
+                    <ul className="space-y-1 flex-1">
+                      {(p.features as string[]).slice(0, 4).map((f) => (
+                        <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <BadgeCheck className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => handleSelectPlan(p)}
+                      disabled={isCurrent || !!checkingOut}
+                      className={`w-full h-8 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                        isCurrent
+                          ? "bg-success/10 text-success cursor-default"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                      }`}
+                    >
+                      {isPending ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting to payment…</>
+                      ) : isCurrent ? (
+                        <><CheckCircle2 className="h-3.5 w-3.5" /> Current plan</>
+                      ) : p.price === 0 ? (
+                        <>Select plan <ArrowRight className="h-3.5 w-3.5" /></>
+                      ) : (
+                        <>Subscribe · {monthlyTotal} <ArrowRight className="h-3.5 w-3.5" /></>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary stats */}

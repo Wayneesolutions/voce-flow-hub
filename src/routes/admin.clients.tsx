@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { adminTenantsApi } from "@/lib/api";
-import type { Tenant } from "@/lib/types";
-import { Plus, Search, X, Upload, ImageIcon } from "lucide-react";
+import { adminTenantsApi, adminPlansApi } from "@/lib/api";
+import type { Tenant, Plan } from "@/lib/types";
+import { Plus, Search, X, Upload, ImageIcon, Mic, Loader2, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/clients")({
@@ -42,6 +42,21 @@ function ClientsPage() {
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["admin", "tenants"],
     queryFn: adminTenantsApi.list,
+  });
+
+  const { data: plans = [] } = useQuery<Plan[]>({
+    queryKey: ["admin", "plans"],
+    queryFn: adminPlansApi.list,
+  });
+
+  const assignPlanMut = useMutation({
+    mutationFn: ({ id, planId }: { id: string; planId: string | null }) =>
+      adminTenantsApi.update(id, { planId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
+      toast.success("Plan updated");
+    },
+    onError: () => toast.error("Failed to update plan"),
   });
 
   const selected = tenants.find((t) => t.id === selectedId) ?? tenants[0];
@@ -94,13 +109,32 @@ function ClientsPage() {
   });
 
   const statusMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    mutationFn: ({ id, status }: { id: string; status: import("@/lib/types").TenantStatus }) =>
       adminTenantsApi.update(id, { status }),
     onSuccess: (_, { status }) => {
       qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
       toast.success(`Client ${status === "SUSPENDED" ? "suspended" : status === "PAUSED" ? "paused" : "activated"}`);
     },
     onError: () => toast.error("Failed to update status"),
+  });
+
+  const [voiceInput, setVoiceInput] = useState("");
+  const [voiceNameInput, setVoiceNameInput] = useState("");
+
+  // Sync inputs when selected client changes
+  useEffect(() => {
+    setVoiceInput(selected?.clonedVoiceId ?? "");
+    setVoiceNameInput(selected?.clonedVoiceName ?? "");
+  }, [selected?.id]);
+
+  const setVoiceMut = useMutation({
+    mutationFn: ({ id, voiceId, voiceName }: { id: string; voiceId: string | null; voiceName: string | null }) =>
+      adminTenantsApi.update(id, { clonedVoiceId: voiceId, clonedVoiceName: voiceName }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
+      toast.success("Voice ID updated");
+    },
+    onError: () => toast.error("Failed to update voice"),
   });
 
   const f = (key: keyof typeof form, val: string) => setForm((p) => ({ ...p, [key]: val }));
@@ -265,6 +299,108 @@ function ClientsPage() {
               <Row label="Calls" value={String(selected._count?.calls ?? "—")} />
               <Row label="Leads" value={String(selected._count?.leads ?? "—")} />
             </dl>
+
+            {/* Plan assignment */}
+            <div>
+              <label className="text-xs uppercase tracking-wide text-muted-foreground font-medium block mb-1.5">
+                Assigned plan
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selected.plan?.id ?? ""}
+                  onChange={(e) =>
+                    assignPlanMut.mutate({ id: selected.id, planId: e.target.value || null })
+                  }
+                  disabled={assignPlanMut.isPending}
+                  className="flex-1 h-9 rounded-md border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
+                >
+                  <option value="">— No plan —</option>
+                  {plans.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.price === 0 ? "(Free)" : `($${p.price.toFixed(2)}/min)`}
+                    </option>
+                  ))}
+                </select>
+                {assignPlanMut.isPending && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+                )}
+              </div>
+              {selected.plan && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {selected.plan.minutesIncluded === 0
+                    ? "Unlimited minutes"
+                    : `${selected.plan.minutesIncluded.toLocaleString()} minutes included`}
+                </p>
+              )}
+            </div>
+
+            {/* ElevenLabs voice ID */}
+            <div>
+              <label className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-1.5 mb-1.5">
+                <Mic className="h-3 w-3" /> ElevenLabs Voice ID
+              </label>
+
+              {/* Current voice status */}
+              {selected.clonedVoiceId && (
+                <div className="mb-2 flex items-center gap-2 rounded-md bg-success/5 border border-success/20 px-2.5 py-2">
+                  <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-success truncate">
+                      {selected.clonedVoiceName ?? "Voice set"}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-mono truncate">
+                      {selected.clonedVoiceId}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Name input */}
+              <input
+                value={voiceNameInput}
+                onChange={(e) => setVoiceNameInput(e.target.value)}
+                placeholder="Voice label (e.g. Alex UK)"
+                className="w-full h-8 rounded-md border border-border bg-background px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40 mb-1.5"
+              />
+              {/* ID input + actions */}
+              <div className="flex gap-1.5">
+                <input
+                  value={voiceInput}
+                  onChange={(e) => setVoiceInput(e.target.value)}
+                  placeholder="Paste ElevenLabs voice ID…"
+                  className="flex-1 h-8 rounded-md border border-border bg-background px-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+                <button
+                  onClick={() => setVoiceMut.mutate({
+                    id: selected.id,
+                    voiceId: voiceInput.trim() || null,
+                    voiceName: voiceNameInput.trim() || null,
+                  })}
+                  disabled={setVoiceMut.isPending || voiceInput.trim() === (selected.clonedVoiceId ?? "")}
+                  title="Save voice ID"
+                  className="h-8 w-8 rounded-md bg-primary text-primary-foreground inline-flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 shrink-0"
+                >
+                  {setVoiceMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                </button>
+                {selected.clonedVoiceId && (
+                  <button
+                    onClick={() => {
+                      setVoiceMut.mutate({ id: selected.id, voiceId: null, voiceName: null });
+                      setVoiceInput("");
+                      setVoiceNameInput("");
+                    }}
+                    disabled={setVoiceMut.isPending}
+                    title="Remove voice"
+                    className="h-8 w-8 rounded-md border border-destructive/30 text-destructive inline-flex items-center justify-center hover:bg-destructive/5 disabled:opacity-40 shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                This voice ID is used for every outbound call made by this client.
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button

@@ -7,6 +7,13 @@ import type { Script } from "@/lib/types";
 import { Check, FileText, X, MessageSquare, Loader2, BadgeCheck, Ban } from "lucide-react";
 import { toast } from "sonner";
 
+const SCRIPT_LANGUAGES: Record<string, string> = {
+  en: "English", hi: "Hindi (हिन्दी)", es: "Spanish", fr: "French",
+  de: "German", pt: "Portuguese", ar: "Arabic", zh: "Chinese (中文)",
+  ja: "Japanese", ko: "Korean", ru: "Russian", it: "Italian",
+  nl: "Dutch", tr: "Turkish", pl: "Polish",
+};
+
 export const Route = createFileRoute("/admin/scripts")({
   head: () => ({ meta: [{ title: "Script Review · VoCallM Admin" }] }),
   component: ScriptReview,
@@ -152,6 +159,13 @@ function ScriptReview() {
                     <p className="font-mono text-xs">{active.voiceId}</p>
                   </Section>
                 )}
+                <Section title="Call language">
+                  <p>{active.language && active.language !== "en" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 text-accent text-xs font-medium px-2.5 py-1">
+                      {SCRIPT_LANGUAGES[active.language] ?? active.language}
+                    </span>
+                  ) : "English (default)"}</p>
+                </Section>
               </div>
 
               <div className="border-t border-border p-5 bg-muted/20 space-y-4">

@@ -1,26 +1,89 @@
-import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   LayoutDashboard,
   Upload,
   FileText,
+  Mic,
   Megaphone,
   PhoneCall,
   CalendarCheck,
   CreditCard,
   Settings,
   LogOut,
+  Lock,
+  ArrowRight,
 } from "lucide-react";
 import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearUser } from "@/store/userAuthSlice";
 import { store } from "@/store";
+import { useQuery } from "@tanstack/react-query";
+import { tenantApi } from "@/lib/api";
+
+function PlanGate({ accentColor }: { accentColor: string }) {
+  const LOCKED_FEATURES = [
+    { icon: Megaphone, label: "AI Calling Campaigns" },
+    { icon: Upload,    label: "Lead Management" },
+    { icon: PhoneCall, label: "Call Recordings & Transcripts" },
+    { icon: CalendarCheck, label: "Auto Meeting Booking" },
+    { icon: FileText,  label: "Custom AI Scripts" },
+    { icon: Mic,       label: "Voice Cloning" },
+  ];
+
+  return (
+    <div className="lg:pl-60 min-h-screen bg-muted/40 flex items-center justify-center p-6">
+      <div className="max-w-lg w-full text-center">
+        <div
+          className="mx-auto mb-6 h-20 w-20 rounded-2xl flex items-center justify-center shadow-lg"
+          style={{ background: `${accentColor}18` }}
+        >
+          <Lock className="h-9 w-9" style={{ color: accentColor }} />
+        </div>
+
+        <h2 className="text-2xl font-semibold tracking-tight">Activate your plan</h2>
+        <p className="mt-2 text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
+          Your account is ready. Choose a plan to unlock AI calling campaigns and all platform features.
+        </p>
+
+        <div className="mt-7 grid grid-cols-2 gap-2.5 text-left max-w-sm mx-auto">
+          {LOCKED_FEATURES.map(({ icon: Icon, label }) => (
+            <div
+              key={label}
+              className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card/60 px-3 py-2.5 opacity-50"
+            >
+              <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          to="/portal/billing"
+          search={{ checkout: undefined }}
+          className="mt-8 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 shadow-lg"
+          style={{ background: accentColor }}
+        >
+          View plans &amp; pricing <ArrowRight className="h-4 w-4" />
+        </Link>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Need help?{" "}
+          <a href="mailto:support@waynesolutions.com" className="hover:underline" style={{ color: accentColor }}>
+            Contact support
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const items: NavItem[] = [
   { to: "/portal", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
   { to: "/portal/leads", label: "Upload Leads", icon: <Upload className="h-4 w-4" /> },
   { to: "/portal/scripts", label: "Scripts", icon: <FileText className="h-4 w-4" /> },
+  { to: "/portal/voice", label: "My Voice", icon: <Mic className="h-4 w-4" /> },
   { to: "/portal/campaigns", label: "Campaigns", icon: <Megaphone className="h-4 w-4" /> },
   { to: "/portal/calls", label: "Call Log", icon: <PhoneCall className="h-4 w-4" /> },
   { to: "/portal/meetings", label: "Meetings", icon: <CalendarCheck className="h-4 w-4" /> },
@@ -47,6 +110,20 @@ function PortalLayout() {
   useEffect(() => {
     if (!client) navigate({ to: "/login", replace: true });
   }, [client, navigate]);
+
+  const { data: me, isLoading: meLoading } = useQuery({
+    queryKey: ["tenant-me"],
+    queryFn: tenantApi.me,
+    staleTime: 60_000,
+    enabled: !!client,
+  });
+
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+  const isOnBilling = currentPath.startsWith("/portal/billing");
+  const hasPlan = !!me?.plan;
+  // Only gate once me is confirmed loaded (avoids flashing gate on page load)
+  const showGate = !meLoading && me !== undefined && !hasPlan && !isOnBilling;
 
   if (!client) return null;
 
@@ -106,7 +183,7 @@ function PortalLayout() {
           </div>
         }
       />
-      <Outlet />
+      {showGate ? <PlanGate accentColor={accentColor} /> : <Outlet />}
 
       {/* Logout confirmation modal */}
       {logoutModal && createPortal(

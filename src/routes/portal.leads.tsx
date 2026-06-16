@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Trash2,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/portal/leads")({
@@ -36,6 +37,11 @@ function Leads() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => leadsApi.optOut(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: (id: string) => leadsApi.reset(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
   });
 
@@ -198,14 +204,32 @@ function Leads() {
                 </td>
                 <td className="px-3 py-3 text-right tabular-nums">{l.callAttempts}</td>
                 <td className="px-5 py-3 text-right">
-                  <button
-                    title="Opt out lead"
-                    onClick={() => deleteMutation.mutate(l.id)}
-                    disabled={deleteMutation.isPending}
-                    className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    {(l.status === "OPTED_OUT" || l.status === "EXHAUSTED") && (
+                      <button
+                        title="Re-enable for calling"
+                        onClick={() => resetMutation.mutate(l.id)}
+                        disabled={resetMutation.isPending}
+                        className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-success/30 text-success hover:bg-success/10 transition-colors disabled:opacity-50"
+                      >
+                        {resetMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
+                    {l.status !== "OPTED_OUT" && (
+                      <button
+                        title="Opt out lead"
+                        onClick={() => deleteMutation.mutate(l.id)}
+                        disabled={deleteMutation.isPending}
+                        className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
