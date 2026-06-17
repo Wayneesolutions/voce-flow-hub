@@ -31,6 +31,10 @@ const AUTH_ROUTES = ["/admin/login", "/admin/forgot-password", "/admin/reset-pas
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: ({ location }) => {
+    // localStorage is unavailable during SSR — skip the guard and let the
+    // client handle it after hydration (component-level null guards below).
+    if (typeof window === "undefined") return;
+
     const isAuthRoute = AUTH_ROUTES.some((r) => location.pathname.startsWith(r));
     const user = store.getState().adminAuth.user;
 
@@ -82,7 +86,7 @@ function AdminLayout() {
       <DashboardSidebar
         brand={{
           name: "VoCallM Admin",
-          subtitle: "Wayne Solutions",
+          subtitle: "Wayne E Solutions",
           mark: <PhoneCall className="h-4 w-4" />,
           markBg: "#2E86DE",
         }}

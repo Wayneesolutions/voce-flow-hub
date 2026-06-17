@@ -62,7 +62,7 @@ function NotFoundComponent() {
 
       {/* Footer hint */}
       <p className="mt-10 text-xs text-muted-foreground">
-        VoCallM · Wayne Solutions
+        VoCallM · Wayne E Solutions
       </p>
     </div>
   );
@@ -117,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "VoCallM is a white-label AI calling platform that turns lead lists into booked sales meetings — automatically.",
       },
-      { name: "author", content: "Wayne Solutions" },
+      { name: "author", content: "Wayne E Solutions" },
       { property: "og:title", content: "VoCallM — AI sales agents that book qualified meetings" },
       {
         property: "og:description",

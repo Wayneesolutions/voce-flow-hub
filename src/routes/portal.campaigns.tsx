@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { campaignsApi, scriptsApi, leadsApi } from "@/lib/api";
-import type { Campaign, Script } from "@/lib/types";
-import { Plus, Play, Pause, X, Loader2, Users, Settings2 } from "lucide-react";
+import type { Campaign, Lead, Script } from "@/lib/types";
+import { Plus, Play, Pause, X, Loader2, Settings2, List, CheckSquare, Square, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/campaigns")({
@@ -39,7 +39,6 @@ const defaultForm = {
   callDays: "MON,TUE,WED,THU,FRI",
   maxAttempts: "3",
   retryAfterHours: "24",
-  includeAllLeads: true,
 };
 
 function Campaigns() {
@@ -48,6 +47,8 @@ function Campaigns() {
   const [form, setForm] = useState(defaultForm);
   const [editing, setEditing] = useState<Campaign | null>(null);
   const [editForm, setEditForm] = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [leadSearch, setLeadSearch] = useState("");
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -60,13 +61,59 @@ function Campaigns() {
     queryFn: scriptsApi.list,
   });
 
-  const { data: unassigned } = useQuery<{ count: number }>({
-    queryKey: ["leads", "unassigned-count"],
-    queryFn: leadsApi.unassignedCount,
+  const { data: unassignedLeads, isLoading: leadsLoading } = useQuery<{ leads: Lead[]; total: number; page: number; pages: number }>({
+    queryKey: ["leads", "unassigned-list"],
+    queryFn: () => leadsApi.list({ unassigned: true, limit: 500 }),
     enabled: creating,
   });
 
   const liveScripts = scripts.filter((s) => s.status === "LIVE" || s.status === "APPROVED");
+  const availableLeads = unassignedLeads?.leads ?? [];
+
+  const q = leadSearch.trim().toLowerCase();
+  const filteredLeads = q
+    ? availableLeads.filter(
+        (l) =>
+          l.name.toLowerCase().includes(q) ||
+          (l.company ?? "").toLowerCase().includes(q) ||
+          l.phone.includes(q)
+      )
+    : availableLeads;
+
+  const allFilteredSelected =
+    filteredLeads.length > 0 && filteredLeads.every((l) => selectedLeadIds.has(l.id));
+  const someFilteredSelected = filteredLeads.some((l) => selectedLeadIds.has(l.id)) && !allFilteredSelected;
+
+  function toggleLead(id: string) {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (allFilteredSelected) {
+      setSelectedLeadIds((prev) => {
+        const next = new Set(prev);
+        filteredLeads.forEach((l) => next.delete(l.id));
+        return next;
+      });
+    } else {
+      setSelectedLeadIds((prev) => {
+        const next = new Set(prev);
+        filteredLeads.forEach((l) => next.add(l.id));
+        return next;
+      });
+    }
+  }
+
+  function openCreate() {
+    setSelectedLeadIds(new Set());
+    setLeadSearch("");
+    setForm(defaultForm);
+    setCreating(true);
+  }
 
   const createMut = useMutation({
     mutationFn: () =>
@@ -79,12 +126,14 @@ function Campaigns() {
         callDays: form.callDays,
         maxAttempts: parseInt(form.maxAttempts),
         retryAfterHours: parseInt(form.retryAfterHours),
-        includeAllLeads: form.includeAllLeads,
+        leadIds: selectedLeadIds.size > 0 ? Array.from(selectedLeadIds) : undefined,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
       setCreating(false);
       setForm(defaultForm);
+      setSelectedLeadIds(new Set());
       toast.success("Campaign created");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -142,7 +191,7 @@ function Campaigns() {
       subtitle={`${campaigns.length} campaign${campaigns.length !== 1 ? "s" : ""}`}
       actions={
         <button
-          onClick={() => setCreating(true)}
+          onClick={openCreate}
           className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -161,7 +210,7 @@ function Campaigns() {
             Create a campaign to start dialing your leads.
           </div>
           <button
-            onClick={() => setCreating(true)}
+            onClick={openCreate}
             className="mt-4 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
           >
             Create first campaign
@@ -206,6 +255,14 @@ function Campaigns() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex items-center gap-2">
+                      <Link
+                        to="/portal/leads"
+                        search={{ campaignId: c.id, campaignName: c.name }}
+                        className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
+                        title="View leads"
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </Link>
                       <button
                         onClick={() => openEdit(c)}
                         className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
@@ -354,7 +411,7 @@ function Campaigns() {
           <div className="w-full max-w-xl rounded-lg border border-border bg-card shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="font-semibold">New campaign</div>
-              <button onClick={() => setCreating(false)} className="p-1 rounded hover:bg-secondary">
+              <button onClick={() => { setCreating(false); setSelectedLeadIds(new Set()); }} className="p-1 rounded hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -391,33 +448,88 @@ function Campaigns() {
               </div>
               {/* Leads assignment */}
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium">Leads</label>
-                <div className="mt-1.5 rounded-md border border-border bg-muted/30 px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    {unassigned === undefined ? (
-                      <span className="text-muted-foreground">Counting unassigned leads…</span>
-                    ) : unassigned.count === 0 ? (
-                      <span className="text-warning">No unassigned leads. Upload leads first.</span>
-                    ) : (
-                      <span>
-                        <span className="font-semibold">{unassigned.count.toLocaleString()}</span>
-                        {" "}unassigned lead{unassigned.count !== 1 ? "s" : ""} available
-                      </span>
-                    )}
-                  </div>
-                  {(unassigned?.count ?? 0) > 0 && (
-                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={form.includeAllLeads}
-                        onChange={(e) => setForm((p) => ({ ...p, includeAllLeads: e.target.checked }))}
-                        className="h-4 w-4 rounded accent-primary"
-                      />
-                      Add all to campaign
-                    </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium">Leads to include</label>
+                  {availableLeads.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {selectedLeadIds.size} of {availableLeads.length} selected
+                    </span>
                   )}
                 </div>
+
+                {leadsLoading ? (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading leads…
+                  </div>
+                ) : availableLeads.length === 0 ? (
+                  <div className="rounded-md border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-warning">
+                    No unassigned leads. Upload leads first before creating a campaign.
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-border overflow-hidden">
+                    {/* Search */}
+                    <div className="relative border-b border-border">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <input
+                        value={leadSearch}
+                        onChange={(e) => setLeadSearch(e.target.value)}
+                        placeholder="Search by name, company or phone…"
+                        className="w-full h-9 bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent/40"
+                      />
+                    </div>
+
+                    {/* Select all header */}
+                    <button
+                      type="button"
+                      onClick={toggleAll}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 bg-muted/40 hover:bg-muted/70 text-sm font-medium transition-colors border-b border-border"
+                    >
+                      {allFilteredSelected ? (
+                        <CheckSquare className="h-4 w-4 text-primary shrink-0" />
+                      ) : someFilteredSelected ? (
+                        <CheckSquare className="h-4 w-4 text-primary/50 shrink-0" />
+                      ) : (
+                        <Square className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      {allFilteredSelected ? "Deselect all" : "Select all"}
+                      {q && <span className="ml-auto text-xs text-muted-foreground font-normal">{filteredLeads.length} match{filteredLeads.length !== 1 ? "es" : ""}</span>}
+                    </button>
+
+                    {/* Lead rows */}
+                    <div className="max-h-52 overflow-y-auto divide-y divide-border">
+                      {filteredLeads.length === 0 && (
+                        <div className="px-4 py-4 text-sm text-muted-foreground text-center">
+                          No leads match "{leadSearch}"
+                        </div>
+                      )}
+                      {filteredLeads.map((lead) => {
+                        const checked = selectedLeadIds.has(lead.id);
+                        return (
+                          <button
+                            key={lead.id}
+                            type="button"
+                            onClick={() => toggleLead(lead.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/40 ${checked ? "bg-primary/5" : ""}`}
+                          >
+                            {checked ? (
+                              <CheckSquare className="h-4 w-4 text-primary shrink-0" />
+                            ) : (
+                              <Square className="h-4 w-4 text-muted-foreground shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium truncate">{lead.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {[lead.company, lead.phone].filter(Boolean).join(" · ")}
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground shrink-0">{lead.country}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -483,17 +595,18 @@ function Campaigns() {
             )}
             <div className="p-5 border-t border-border flex justify-end gap-2">
               <button
-                onClick={() => setCreating(false)}
+                onClick={() => { setCreating(false); setSelectedLeadIds(new Set()); }}
                 className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={() => createMut.mutate()}
-                disabled={!form.name || !form.scriptId || createMut.isPending}
+                disabled={!form.name || !form.scriptId || selectedLeadIds.size === 0 || createMut.isPending}
                 className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+                title={selectedLeadIds.size === 0 ? "Select at least one lead" : undefined}
               >
-                {createMut.isPending ? "Creating…" : "Create campaign"}
+                {createMut.isPending ? "Creating…" : `Create campaign${selectedLeadIds.size > 0 ? ` (${selectedLeadIds.size} leads)` : ""}`}
               </button>
             </div>
           </div>

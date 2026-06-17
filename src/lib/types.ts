@@ -235,8 +235,18 @@ export interface AdminStats {
 }
 
 export interface AdminBillingSummary {
-  tenant: { id: string; name: string; ratePerMinute: number; stripeCustomerId?: string; plan?: { id: string; name: string } | null };
+  tenant: {
+    id: string;
+    name: string;
+    ratePerMinute: number;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
+    planExpiresAt?: string | null;
+    plan?: { id: string; name: string; price: number; minutesIncluded: number } | null;
+  };
   totalMinutes: number;
+  usageRevenue: number;
+  subscriptionRevenue: number;
   totalRevenue: number;
   platformCost: number;
   grossProfit: number;

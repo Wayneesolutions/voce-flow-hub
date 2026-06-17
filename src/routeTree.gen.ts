@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PortalRouteImport } from './routes/portal'
@@ -28,6 +29,7 @@ import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
 import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as AdminScriptsRouteImport } from './routes/admin.scripts'
 import { Route as AdminResetPasswordRouteImport } from './routes/admin.reset-password'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
@@ -41,6 +43,11 @@ import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -133,6 +140,11 @@ const PortalBillingRoute = PortalBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => PortalRoute,
 } as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminScriptsRoute = AdminScriptsRouteImport.update({
   id: '/scripts',
   path: '/scripts',
@@ -188,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRouteWithChildren
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
@@ -198,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
@@ -216,6 +230,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
@@ -226,6 +241,7 @@ export interface FileRoutesByTo {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
@@ -247,6 +263,7 @@ export interface FileRoutesById {
   '/portal': typeof PortalRouteWithChildren
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
@@ -257,6 +274,7 @@ export interface FileRoutesById {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
@@ -279,6 +297,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pricing'
     | '/register'
+    | '/reset-password'
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
@@ -289,6 +308,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/reset-password'
     | '/admin/scripts'
+    | '/checkout/success'
     | '/portal/billing'
     | '/portal/calls'
     | '/portal/campaigns'
@@ -307,6 +327,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/register'
+    | '/reset-password'
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
@@ -317,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/reset-password'
     | '/admin/scripts'
+    | '/checkout/success'
     | '/portal/billing'
     | '/portal/calls'
     | '/portal/campaigns'
@@ -337,6 +359,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pricing'
     | '/register'
+    | '/reset-password'
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
@@ -347,6 +370,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/reset-password'
     | '/admin/scripts'
+    | '/checkout/success'
     | '/portal/billing'
     | '/portal/calls'
     | '/portal/campaigns'
@@ -368,7 +392,9 @@ export interface RootRouteChildren {
   PortalRoute: typeof PortalRouteWithChildren
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -378,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -505,6 +538,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/billing'
       preLoaderRoute: typeof PortalBillingRouteImport
       parentRoute: typeof PortalRoute
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/scripts': {
       id: '/admin/scripts'
@@ -636,7 +676,9 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRoute: PortalRouteWithChildren,
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

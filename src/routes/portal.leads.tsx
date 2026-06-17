@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
@@ -12,9 +12,15 @@ import {
   Trash2,
   Loader2,
   RotateCcw,
+  Filter,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/portal/leads")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    campaignId:   typeof search.campaignId   === "string" ? search.campaignId   : undefined,
+    campaignName: typeof search.campaignName === "string" ? search.campaignName : undefined,
+  }),
   head: () => ({ meta: [{ title: "Upload Leads · Client Portal" }] }),
   component: Leads,
 });
@@ -22,17 +28,24 @@ export const Route = createFileRoute("/portal/leads")({
 function Leads() {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { campaignId, campaignName } = Route.useSearch();
   const [uploadResult, setUploadResult] = useState<{
     imported: number;
     skipped: number;
     errors: string[];
   } | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Reset to page 1 whenever the campaign filter changes
   const [page, setPage] = useState(1);
+  const prevCampaignId = useRef(campaignId);
+  if (prevCampaignId.current !== campaignId) {
+    prevCampaignId.current = campaignId;
+    if (page !== 1) setPage(1);
+  }
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page],
-    queryFn: () => leadsApi.list({ page, limit: 20 }),
+    queryKey: ["leads", page, campaignId],
+    queryFn: () => leadsApi.list({ page, limit: 20, campaignId }),
   });
 
   const deleteMutation = useMutation({
@@ -70,8 +83,25 @@ function Leads() {
     <DashboardShell
       sidebar={null}
       title="Upload leads"
-      subtitle="Upload a CSV file of contacts to call"
+      subtitle={campaignId && campaignName ? `Showing leads for campaign: ${campaignName}` : "Upload a CSV file of contacts to call"}
     >
+      {campaignId && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/5 px-4 py-2.5 text-sm">
+          <Filter className="h-4 w-4 text-accent shrink-0" />
+          <span className="text-accent font-medium">
+            Filtered by campaign: <span className="font-semibold">{campaignName ?? campaignId}</span>
+          </span>
+          <Link
+            to="/portal/leads"
+            search={{}}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <X className="h-3 w-3" />
+            Show all leads
+          </Link>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div
           className="lg:col-span-2 rounded-lg border-2 border-dashed border-border bg-card p-10 text-center cursor-pointer hover:border-accent/50 transition-colors"

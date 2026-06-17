@@ -6,22 +6,10 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// API proxy is handled in src/server.ts (the Nitro server entry).
+// vite.server.proxy only covers Vite's HMR/asset layer, not real requests.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
-  },
-  vite: {
-    server: {
-      proxy: {
-        "/api": {
-          target: "http://localhost:3001",
-          changeOrigin: true,
-        },
-        "/uploads": {
-          target: "http://localhost:3001",
-          changeOrigin: true,
-        },
-      },
-    },
   },
 });

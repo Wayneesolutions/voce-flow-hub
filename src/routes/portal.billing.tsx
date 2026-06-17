@@ -1,19 +1,13 @@
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { billingApi, tenantApi, publicPlansApi } from "@/lib/api";
 import type { Plan } from "@/lib/types";
-import { Timer, DollarSign, PhoneCall, Receipt, Loader2, ExternalLink, FileText, CreditCard, CheckCircle2, Package, Zap, BadgeCheck, ArrowRight } from "lucide-react";
+import { Timer, DollarSign, PhoneCall, Receipt, Loader2, ExternalLink, FileText, CreditCard, CheckCircle2, Package, Zap, BadgeCheck, ArrowRight, Lock, CalendarClock } from "lucide-react";
 import axios from "axios";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
-
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-  : null;
 
 export const Route = createFileRoute("/portal/billing")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -31,15 +25,6 @@ function authHeader() {
 async function fetchInvoices() {
   const res = await axios.get("/api/stripe/invoices", { headers: authHeader() });
   return res.data as StripeInvoice[];
-}
-
-async function fetchPaymentMethod() {
-  const res = await axios.get("/api/stripe/payment-method", { headers: authHeader() });
-  return res.data as { card: SavedCard | null };
-}
-
-interface SavedCard {
-  id: string; brand: string; last4: string; expMonth: number; expYear: number;
 }
 
 interface StripeInvoice {
@@ -64,16 +49,10 @@ function PortalBilling() {
   });
   const plan = me?.plan ?? null;
 
-  // Handle return from Stripe Checkout
+  // Handle cancelled checkout return (success now lands on /checkout/success)
   useEffect(() => {
-    if (!checkout) return;
-    if (checkout === "success") {
-      toast.success("Payment successful! Your plan is now active.");
-      setTimeout(() => refetchMe(), 2000);
-    } else if (checkout === "cancelled") {
-      toast.info("Checkout cancelled — no charge was made.");
-    }
-    // Remove query param from URL so it doesn't re-fire on page refresh
+    if (checkout !== "cancelled") return;
+    toast.info("Checkout cancelled — no charge was made.");
     navigate({ search: { checkout: undefined }, replace: true });
   }, [checkout]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -83,35 +62,49 @@ function PortalBilling() {
     staleTime: 5 * 60_000,
   });
 
-  // Free plans assign directly; paid plans go through Stripe checkout
-  const selectablePlans = allPlans.filter((p) => p.minutesIncluded > 0); // exclude unlimited (contact sales)
+  // Show all active plans (backend returns only isActive ones)
+  const selectablePlans = allPlans;
 
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
 
+  // Plan is locked mid-cycle if an active Stripe subscription exists (regardless of planExpiresAt)
+  const planExpiry = me?.planExpiresAt ? new Date(me.planExpiresAt) : null;
+  const planExpired = planExpiry ? planExpiry < new Date() : false;
+  const isLocked = !!plan && plan.price > 0 && !!me?.hasSubscription && !planExpired;
+
   const handleSelectPlan = async (p: Plan) => {
     if (p.id === plan?.id) return;
+
+    // Block mid-cycle switching in the UI as a safeguard (backend also blocks it)
+    if (isLocked && p.price > 0) {
+      toast.error(
+        `You can switch plans after your current plan expires on ${planExpiry!.toLocaleDateString()}.`
+      );
+      return;
+    }
+
     setCheckingOut(p.id);
     try {
       if (p.price === 0) {
-        // Free plan — assign directly
         await tenantApi.selectPlan(p.id);
         await refetchMe();
         toast.success(`Switched to ${p.name} plan`);
       } else {
-        // Paid plan — go through Stripe
         const result = await tenantApi.startPlanCheckout(p.id);
-        if (result.upgraded) {
-          // Already had a subscription — upgraded inline
-          await refetchMe();
-          toast.success(`Upgraded to ${p.name} plan`);
+        if (result.alreadyActive) {
+          toast.info("This is already your active plan.");
         } else if (result.url) {
           window.location.href = result.url;
         }
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        ?? "Something went wrong";
-      toast.error(msg);
+      const data = (err as { response?: { data?: { error?: string; planExpiresAt?: string; code?: string } } })?.response?.data;
+      if (data?.code === "MID_CYCLE_CHANGE" && data.planExpiresAt) {
+        const date = new Date(data.planExpiresAt).toLocaleDateString();
+        toast.error(`Plan switch locked until ${date} — your current plan is still active.`);
+      } else {
+        toast.error(data?.error ?? "Something went wrong");
+      }
     } finally {
       setCheckingOut(null);
     }
@@ -133,14 +126,6 @@ function PortalBilling() {
     retry: false,
   });
 
-  const { data: pmData, refetch: refetchPm } = useQuery({
-    queryKey: ["stripe-payment-method"],
-    queryFn: fetchPaymentMethod,
-    retry: false,
-  });
-
-  const savedCard = pmData?.card ?? null;
-
   const statusColor: Record<string, string> = {
     paid:   "bg-success/10 text-success",
     open:   "bg-warning/10 text-warning",
@@ -160,26 +145,54 @@ function PortalBilling() {
         </div>
 
         {/* Active plan summary strip */}
-        {plan && (
-          <div className="px-5 py-4 border-b border-border bg-accent/5 flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">{plan.name}</span>
-              {plan.price === 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-[11px] font-semibold px-2 py-0.5">
-                  <Zap className="h-3 w-3" /> Free Trial
+        {plan && (() => {
+          const expiry = me?.planExpiresAt ? new Date(me.planExpiresAt) : null;
+          const expired = expiry ? expiry < new Date() : false;
+          return (
+            <div className="px-5 py-4 border-b border-border bg-accent/5 flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">{plan.name}</span>
+                {plan.price === 0 ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-[11px] font-semibold px-2 py-0.5">
+                    <Zap className="h-3 w-3" /> Free Trial
+                  </span>
+                ) : expired ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive text-[11px] font-semibold px-2 py-0.5">
+                    Expired
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-[11px] font-semibold px-2 py-0.5">
+                    Active
+                  </span>
+                )}
+              </div>
+              <div className="h-6 w-px bg-border hidden sm:block" />
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}/min`}
                 </span>
+                {" · "}
+                {plan.minutesIncluded === 0 ? "Unlimited minutes" : `${plan.minutesIncluded.toLocaleString()} min included`}
+              </div>
+              {expiry && plan.price > 0 && (
+                <>
+                  <div className="h-6 w-px bg-border hidden sm:block" />
+                  <div className="text-sm">
+                    {expired ? (
+                      <span className="text-destructive font-medium">
+                        Expired {expiry.toLocaleDateString()}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Renews <span className="font-medium text-foreground">{expiry.toLocaleDateString()}</span>
+                      </span>
+                    )}
+                  </div>
+                </>
               )}
             </div>
-            <div className="h-6 w-px bg-border hidden sm:block" />
-            <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}/min`}
-              </span>
-              {" · "}
-              {plan.minutesIncluded === 0 ? "Unlimited minutes" : `${plan.minutesIncluded.toLocaleString()} min included`}
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* All plans grid */}
         <div className="p-5">
@@ -205,31 +218,37 @@ function PortalBilling() {
               {selectablePlans.map((p) => {
                 const isCurrent = plan?.id === p.id;
                 const isPending = checkingOut === p.id;
+                const isOtherPaidLocked = isLocked && !isCurrent && p.price > 0;
                 const monthlyTotal = p.price > 0
                   ? `$${(p.price * p.minutesIncluded).toFixed(0)}/mo`
                   : "Free";
                 return (
                   <div
                     key={p.id}
-                    className={`rounded-lg border p-4 flex flex-col gap-3 transition-colors ${
+                    className={`rounded-lg border p-4 flex flex-col gap-3 transition-colors relative ${
                       isCurrent
                         ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                        : isOtherPaidLocked
+                        ? "border-border/50 opacity-60"
                         : "border-border hover:border-accent/40"
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-sm">{p.name}</span>
-                        {p.isPopular && !isCurrent && (
+                        {isOtherPaidLocked ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-muted text-muted-foreground px-2 py-0.5 flex items-center gap-1">
+                            <Lock className="h-2.5 w-2.5" /> Locked
+                          </span>
+                        ) : p.isPopular && !isCurrent ? (
                           <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-accent/10 text-accent px-2 py-0.5">
                             Popular
                           </span>
-                        )}
-                        {isCurrent && (
+                        ) : isCurrent ? (
                           <span className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-success/10 text-success px-2 py-0.5 flex items-center gap-1">
                             <CheckCircle2 className="h-3 w-3" /> Active
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       {p.blurb && (
                         <p className="text-xs text-muted-foreground mt-0.5">{p.blurb}</p>
@@ -253,17 +272,21 @@ function PortalBilling() {
                     </ul>
                     <button
                       onClick={() => handleSelectPlan(p)}
-                      disabled={isCurrent || !!checkingOut}
+                      disabled={isCurrent || !!checkingOut || isOtherPaidLocked}
                       className={`w-full h-8 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
                         isCurrent
                           ? "bg-success/10 text-success cursor-default"
+                          : isOtherPaidLocked
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                       }`}
                     >
                       {isPending ? (
-                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting to payment…</>
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting…</>
                       ) : isCurrent ? (
                         <><CheckCircle2 className="h-3.5 w-3.5" /> Current plan</>
+                      ) : isOtherPaidLocked ? (
+                        <><CalendarClock className="h-3.5 w-3.5" /> Available {planExpiry ? planExpiry.toLocaleDateString() : "after renewal"}</>
                       ) : p.price === 0 ? (
                         <>Select plan <ArrowRight className="h-3.5 w-3.5" /></>
                       ) : (
@@ -313,40 +336,6 @@ function PortalBilling() {
           {new Date(summary.period.to).toLocaleDateString()}
         </p>
       )}
-
-      {/* Payment method */}
-      <div className="mt-6 rounded-lg border border-border bg-card p-5">
-        <div className="flex items-center gap-2 font-semibold mb-4">
-          <CreditCard className="h-4 w-4 text-muted-foreground" />
-          Payment method
-        </div>
-        {savedCard ? (
-          <div className="flex items-center gap-3">
-            <div className="rounded-md border border-border px-4 py-3 flex items-center gap-3 bg-muted/30">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span className="text-sm font-medium capitalize">{savedCard.brand}</span>
-              <span className="text-sm text-muted-foreground">•••• {savedCard.last4}</span>
-              <span className="text-xs text-muted-foreground">
-                {savedCard.expMonth}/{savedCard.expYear}
-              </span>
-            </div>
-            <button
-              onClick={() => refetchPm()}
-              className="text-xs text-accent hover:underline"
-            >
-              Update card
-            </button>
-          </div>
-        ) : stripePromise ? (
-          <Elements stripe={stripePromise}>
-            <AddCardForm onSuccess={() => { refetchPm(); qc.invalidateQueries({ queryKey: ["stripe-invoices"] }); }} />
-          </Elements>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Stripe is not configured. Add <code>VITE_STRIPE_PUBLISHABLE_KEY</code> to the frontend <code>.env</code>.
-          </p>
-        )}
-      </div>
 
       {/* Stripe invoices */}
       <div className="mt-6 rounded-lg border border-border bg-card overflow-hidden">
@@ -448,68 +437,5 @@ function PortalBilling() {
         )}
       </div>
     </DashboardShell>
-  );
-}
-
-// ── Add Card Form (Stripe Elements) ──────────────────────────────────────────
-function AddCardForm({ onSuccess }: { onSuccess: () => void }) {
-  const stripe   = useStripe();
-  const elements = useElements();
-  const [error,  setError]  = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [done,   setDone]   = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setSaving(true);
-    setError(null);
-
-    try {
-      // Get a SetupIntent clientSecret from our backend
-      const { data } = await axios.post("/api/stripe/setup-intent", {}, { headers: authHeader() });
-      const result = await stripe.confirmCardSetup(data.clientSecret, {
-        payment_method: { card: elements.getElement(CardElement)! },
-      });
-
-      if (result.error) {
-        setError(result.error.message ?? "Card setup failed");
-      } else {
-        setDone(true);
-        onSuccess();
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.error ?? err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (done) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-success">
-        <CheckCircle2 className="h-4 w-4" /> Card saved successfully!
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3 max-w-sm">
-      <p className="text-sm text-muted-foreground">
-        Add a card to enable automatic monthly invoicing.
-      </p>
-      <div className="rounded-md border border-border px-3 py-3 bg-background">
-        <CardElement options={{ style: { base: { fontSize: "14px", color: "#1a1a1a" } } }} />
-      </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      <button
-        type="submit"
-        disabled={saving || !stripe}
-        className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent/90 disabled:opacity-50"
-      >
-        {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        Save card
-      </button>
-    </form>
   );
 }

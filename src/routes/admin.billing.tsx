@@ -7,7 +7,7 @@ import { adminBillingApi } from "@/lib/api";
 import type { AdminBillingSummary } from "@/lib/types";
 import {
   DollarSign, TrendingUp, Timer, Download, Receipt,
-  Send, X, ExternalLink, FileText, CheckCircle2, AlertCircle,
+  Send, X, ExternalLink, FileText, CheckCircle2, AlertCircle, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -83,7 +83,7 @@ function InvoiceModal({ row, month, onClose }: InvoiceModalProps) {
               <div>
                 <div className="font-semibold">Invoice created & sent</div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  ${result.amount.toFixed(2)} charged to {row.tenant.name}'s card on file
+                  ${result.amount.toFixed(2)} usage invoice sent to {row.tenant.name}
                 </div>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-left space-y-1.5">
@@ -156,13 +156,13 @@ function InvoiceModal({ row, month, onClose }: InvoiceModalProps) {
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">{row.totalMinutes.toFixed(1)} min</td>
                       <td className="px-4 py-3 text-right tabular-nums">${row.tenant.ratePerMinute.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">${row.totalRevenue.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-medium">${row.usageRevenue.toFixed(2)}</td>
                     </tr>
                   </tbody>
                   <tfoot className="bg-muted/20 border-t-2 border-border">
                     <tr>
                       <td colSpan={3} className="px-4 py-3 text-right font-semibold">Total due</td>
-                      <td className="px-4 py-3 text-right font-bold text-lg">${row.totalRevenue.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-lg">${row.usageRevenue.toFixed(2)}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -221,10 +221,12 @@ function Billing() {
     queryFn: () => adminBillingApi.summary(month),
   });
 
-  const totalMinutes = rows.reduce((s, r) => s + r.totalMinutes, 0);
-  const totalRevenue = rows.reduce((s, r) => s + r.totalRevenue, 0);
-  const totalCost    = rows.reduce((s, r) => s + r.platformCost, 0);
-  const totalProfit  = rows.reduce((s, r) => s + r.grossProfit, 0);
+  const totalMinutes      = rows.reduce((s, r) => s + r.totalMinutes, 0);
+  const totalSubRevenue   = rows.reduce((s, r) => s + r.subscriptionRevenue, 0);
+  const totalUsageRevenue = rows.reduce((s, r) => s + r.usageRevenue, 0);
+  const totalRevenue      = rows.reduce((s, r) => s + r.totalRevenue, 0);
+  const totalCost         = rows.reduce((s, r) => s + r.platformCost, 0);
+  const totalProfit       = rows.reduce((s, r) => s + r.grossProfit, 0);
 
   const months: string[] = [];
   const d = new Date();
@@ -235,14 +237,15 @@ function Billing() {
 
   const handleExportCSV = () => {
     if (!rows.length) return;
-    const header = ["Client", "Plan", "Minutes", "Rate", "Revenue", "Cost", "Profit", "Margin"].join(",");
+    const header = ["Client", "Plan", "Sub Revenue", "Minutes", "Usage Revenue", "Total Revenue", "Cost", "Profit", "Margin"].join(",");
     const body = rows.map((r) => {
       const margin = r.totalRevenue > 0 ? Math.round((r.grossProfit / r.totalRevenue) * 100) : 0;
       return [
         r.tenant.name,
         r.tenant.plan?.name ?? "—",
+        r.subscriptionRevenue.toFixed(2),
         r.totalMinutes.toFixed(1),
-        r.tenant.ratePerMinute.toFixed(2),
+        r.usageRevenue.toFixed(2),
         r.totalRevenue.toFixed(2),
         r.platformCost.toFixed(2),
         r.grossProfit.toFixed(2),
@@ -287,7 +290,12 @@ function Billing() {
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total minutes" value={totalMinutes.toLocaleString()} icon={<Timer className="h-4 w-4" />} />
-        <StatCard label="Revenue" value={`$${totalRevenue.toFixed(2)}`} icon={<DollarSign className="h-4 w-4" />} />
+        <StatCard
+          label="Subscription revenue"
+          value={`$${totalSubRevenue.toFixed(2)}`}
+          icon={<CreditCard className="h-4 w-4" />}
+          hint={`+ $${totalUsageRevenue.toFixed(2)} usage = $${totalRevenue.toFixed(2)} total`}
+        />
         <StatCard
           label="Platform cost"
           value={`$${totalCost.toFixed(2)}`}
@@ -306,7 +314,7 @@ function Billing() {
         <div className="p-5 border-b border-border flex items-center justify-between">
           <div>
             <div className="font-semibold">Per-client billing — {monthLabel(month)}</div>
-            <div className="text-xs text-muted-foreground">Platform cost at $0.12/min. Click "Invoice" to charge a client.</div>
+            <div className="text-xs text-muted-foreground">Platform cost at $0.12/min. Subscription clients are billed via Stripe automatically. "Invoice" sends a manual usage charge.</div>
           </div>
         </div>
 
@@ -321,9 +329,10 @@ function Billing() {
                 <tr>
                   <th className="text-left font-medium px-5 py-2.5">Client</th>
                   <th className="text-left font-medium px-3 py-2.5">Plan</th>
+                  <th className="text-right font-medium px-3 py-2.5">Sub</th>
                   <th className="text-right font-medium px-3 py-2.5">Minutes</th>
-                  <th className="text-right font-medium px-3 py-2.5">Rate</th>
-                  <th className="text-right font-medium px-3 py-2.5">Revenue</th>
+                  <th className="text-right font-medium px-3 py-2.5">Usage</th>
+                  <th className="text-right font-medium px-3 py-2.5">Total Rev.</th>
                   <th className="text-right font-medium px-3 py-2.5">Cost</th>
                   <th className="text-right font-medium px-3 py-2.5">Profit</th>
                   <th className="text-right font-medium px-5 py-2.5">Margin</th>
@@ -334,6 +343,8 @@ function Billing() {
                 {rows.map((r) => {
                   const margin = r.totalRevenue > 0
                     ? Math.round((r.grossProfit / r.totalRevenue) * 100) : 0;
+                  const hasActiveSub = !!r.tenant.stripeSubscriptionId;
+                  const planExpiry = r.tenant.planExpiresAt ? new Date(r.tenant.planExpiresAt) : null;
                   return (
                     <tr key={r.tenant.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                       <td className="px-5 py-3">
@@ -341,16 +352,30 @@ function Billing() {
                       </td>
                       <td className="px-3 py-3">
                         {r.tenant.plan ? (
-                          <span className="inline-flex items-center rounded-full bg-primary/10 text-primary text-xs font-medium px-2 py-0.5">
-                            {r.tenant.plan.name}
-                          </span>
+                          <div className="space-y-1">
+                            <span className={`inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 ${hasActiveSub ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                              {r.tenant.plan.name}
+                            </span>
+                            {planExpiry && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {planExpiry < new Date() ? "Expired" : "Renews"} {planExpiry.toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
+                          <span className="text-muted-foreground text-xs">Free Trial</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {r.subscriptionRevenue > 0 ? (
+                          <span className="text-primary font-medium">${r.subscriptionRevenue.toFixed(2)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">{r.totalMinutes.toFixed(1)}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">${r.tenant.ratePerMinute.toFixed(2)}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">${r.totalRevenue.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">${r.usageRevenue.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right tabular-nums font-medium">${r.totalRevenue.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">${r.platformCost.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right tabular-nums font-medium text-success">${r.grossProfit.toFixed(2)}</td>
                       <td className="px-5 py-3 text-right">
@@ -373,8 +398,9 @@ function Billing() {
                 {/* Totals row */}
                 <tr className="border-t-2 border-border bg-primary text-primary-foreground">
                   <td className="px-5 py-3 font-semibold" colSpan={2}>Total</td>
+                  <td className="px-3 py-3 text-right tabular-nums font-semibold">${totalSubRevenue.toFixed(2)}</td>
                   <td className="px-3 py-3 text-right tabular-nums font-semibold">{totalMinutes.toFixed(1)}</td>
-                  <td className="px-3 py-3 text-right">—</td>
+                  <td className="px-3 py-3 text-right tabular-nums">${totalUsageRevenue.toFixed(2)}</td>
                   <td className="px-3 py-3 text-right tabular-nums font-semibold">${totalRevenue.toFixed(2)}</td>
                   <td className="px-3 py-3 text-right tabular-nums">${totalCost.toFixed(2)}</td>
                   <td className="px-3 py-3 text-right tabular-nums font-semibold">${totalProfit.toFixed(2)}</td>

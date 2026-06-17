@@ -1,5 +1,4 @@
 import axios from "axios";
-import { mockApi } from "./mocks/data";
 import type {
   Lead,
   Call,
@@ -13,10 +12,6 @@ import type {
   AdminBillingSummary,
   BillingSummary,
   CallStats,
-  DashboardStats,
-  CampaignSettings,
-  AgentSettings,
-  PaginatedResponse,
   LeadStatus,
 } from "./types";
 
@@ -49,14 +44,6 @@ adminHttp.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// In dev, fall back to mock data when backend is unreachable
-function isMock(err: unknown) {
-  if (import.meta.env.PROD) return false;
-  if (!axios.isAxiosError(err)) return false;
-  const status = err.response?.status;
-  return !status || status >= 500;
-}
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -95,6 +82,12 @@ export const authApi = {
 
   resetPassword: (token: string, password: string): Promise<{ message: string }> =>
     publicHttp.post("/auth/admin/reset-password", { token, password }).then((r) => r.data),
+
+  tenantForgotPassword: (email: string): Promise<{ message: string }> =>
+    publicHttp.post("/auth/tenant/forgot-password", { email }).then((r) => r.data),
+
+  tenantResetPassword: (token: string, password: string): Promise<{ message: string }> =>
+    publicHttp.post("/auth/tenant/reset-password", { token, password }).then((r) => r.data),
 };
 
 export const adminProfileApi = {
@@ -277,6 +270,21 @@ export const publicPlansApi = {
     publicHttp.get("/public/plans").then((r) => r.data),
 };
 
+// ── Public: Contact / demo request ───────────────────────────────────────────
+
+export const contactApi = {
+  submit: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company: string;
+    phone?: string;
+    callVolume?: string;
+    message?: string;
+  }): Promise<{ message: string }> =>
+    publicHttp.post("/public/contact", data).then((r) => r.data),
+};
+
 // ── Self-service registration ────────────────────────────────────────────────
 
 export const registerApi = {
@@ -293,19 +301,6 @@ export const registerApi = {
   }> => publicHttp.post("/auth/register", data).then((r) => r.data),
 };
 
-// ── Client portal: Dashboard stats ───────────────────────────────────────────
-
-export const dashboardApi = {
-  getStats: async (): Promise<DashboardStats> => {
-    try {
-      return (await http.get("/dashboard/stats")).data;
-    } catch (e) {
-      if (isMock(e)) return mockApi.getStats();
-      throw e;
-    }
-  },
-};
-
 // ── Client portal: Call stats ─────────────────────────────────────────────────
 
 export const callStatsApi = {
@@ -316,22 +311,14 @@ export const callStatsApi = {
 // ── Client portal: Leads ──────────────────────────────────────────────────────
 
 export const leadsApi = {
-  list: async (params: {
+  list: (params: {
     page?: number;
     limit?: number;
     status?: LeadStatus;
     campaignId?: string;
-  }): Promise<{ leads: Lead[]; total: number; page: number; pages: number }> => {
-    try {
-      return (await http.get("/leads", { params })).data;
-    } catch (e) {
-      if (isMock(e)) {
-        const mock = await mockApi.listLeads(params.page, params.limit);
-        return { leads: mock.data, total: mock.total, page: mock.page, pages: 1 };
-      }
-      throw e;
-    }
-  },
+    unassigned?: boolean;
+  }): Promise<{ leads: Lead[]; total: number; page: number; pages: number }> =>
+    http.get("/leads", { params }).then((r) => r.data),
 
   uploadCsv: (
     file: File,
@@ -358,31 +345,16 @@ export const leadsApi = {
 // ── Client portal: Calls ──────────────────────────────────────────────────────
 
 export const callsApi = {
-  list: async (params: {
+  list: (params: {
     page?: number;
     limit?: number;
     outcome?: string;
     campaignId?: string;
-  } = {}): Promise<{ calls: Call[]; total: number }> => {
-    try {
-      return (await http.get("/calls", { params })).data;
-    } catch (e) {
-      if (isMock(e)) {
-        const mock = await mockApi.listCalls(params.page, params.limit);
-        return { calls: mock.data as unknown as Call[], total: mock.total };
-      }
-      throw e;
-    }
-  },
+  } = {}): Promise<{ calls: Call[]; total: number }> =>
+    http.get("/calls", { params }).then((r) => r.data),
 
-  get: async (callId: string): Promise<Call> => {
-    try {
-      return (await http.get(`/calls/${callId}`)).data;
-    } catch (e) {
-      if (isMock(e)) return mockApi.getCall(callId) as unknown as Call;
-      throw e;
-    }
-  },
+  get: (callId: string): Promise<Call> =>
+    http.get(`/calls/${callId}`).then((r) => r.data),
 };
 
 // ── Client portal: Voices ─────────────────────────────────────────────────────
@@ -448,6 +420,7 @@ export const campaignsApi = {
     maxAttempts?: number;
     retryAfterHours?: number;
     includeAllLeads?: boolean;
+    leadIds?: string[];
   }): Promise<Campaign> =>
     http.post("/campaigns", data).then((r) => r.data),
 
@@ -505,42 +478,14 @@ export const billingApi = {
     http.get("/billing/history").then((r) => r.data),
 };
 
-// ── Legacy — kept for settings pages that haven't been wired yet ──────────────
-
-export const campaignApi = {
-  get: async (): Promise<CampaignSettings> => {
-    try {
-      return (await http.get("/settings/campaign")).data;
-    } catch (e) {
-      if (isMock(e)) return mockApi.getCampaign();
-      throw e;
-    }
-  },
-  update: (data: Partial<CampaignSettings>): Promise<CampaignSettings> =>
-    http.put("/settings/campaign", data).then((r) => r.data),
-};
-
-export const agentApi = {
-  get: async (): Promise<AgentSettings> => {
-    try {
-      return (await http.get("/settings/agent")).data;
-    } catch (e) {
-      if (isMock(e)) return mockApi.getAgent();
-      throw e;
-    }
-  },
-  update: (data: Partial<AgentSettings>): Promise<AgentSettings> =>
-    http.put("/settings/agent", data).then((r) => r.data),
-  testCall: (toNumber: string): Promise<{ callSid: string }> =>
-    http.post("/settings/agent/test-call", { toNumber }).then((r) => r.data),
-};
-
 // ── Tenant: current account info + integrations ───────────────────────────────
 
 export interface TenantMe {
   id: string;
   name: string;
   slug: string;
+  ownerName: string | null;
+  ownerEmail: string | null;
   domain?: string;
   logoUrl?: string;
   primaryColor: string;
@@ -552,6 +497,8 @@ export interface TenantMe {
   hasGcal: boolean;
   clonedVoiceId: string | null;
   clonedVoiceName: string | null;
+  planExpiresAt: string | null;
+  hasSubscription: boolean;
   plan: { id: string; name: string; price: number; minutesIncluded: number; features: string[] } | null;
 }
 
@@ -569,11 +516,23 @@ export const tenantApi = {
   selectPlan: (planId: string): Promise<{ plan: { id: string; name: string; price: number; minutesIncluded: number } }> =>
     http.post("/tenant/plan", { planId }).then((r) => r.data),
 
-  startPlanCheckout: (planId: string): Promise<{ url?: string; upgraded?: boolean }> =>
+  startPlanCheckout: (planId: string): Promise<{ url?: string; upgraded?: boolean; alreadyActive?: boolean }> =>
     http.post("/stripe/checkout", { planId }, { timeout: 30_000 }).then((r) => r.data),
 
   updateIntegrations: (data: IntegrationUpdate): Promise<{ message: string }> =>
     http.patch("/tenant/integrations", data).then((r) => r.data),
+
+  updateProfile: (data: { name?: string; ownerName?: string; primaryColor?: string }): Promise<{ name: string; ownerName: string; primaryColor: string }> =>
+    http.patch("/tenant/profile", data).then((r) => r.data),
+
+  uploadLogo: (file: File): Promise<{ logoUrl: string }> => {
+    const form = new FormData();
+    form.append("logo", file);
+    return http.post("/tenant/logo", form, { headers: { "Content-Type": "multipart/form-data" } }).then((r) => r.data);
+  },
+
+  changePassword: (currentPassword: string, newPassword: string): Promise<{ message: string }> =>
+    http.patch("/tenant/password", { currentPassword, newPassword }).then((r) => r.data),
 };
 
 // ── Client portal: Voice cloning ─────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { PhoneCall, Menu, X, Twitter, Linkedin, Mail } from "lucide-react";
+import { PhoneCall, Menu, X, Mail, MapPin } from "lucide-react";
 import { useState } from "react";
 
 export function MarketingShell({ children }: { children: ReactNode }) {
@@ -146,29 +146,21 @@ function MarketingFooter() {
             AI sales agents that book qualified meetings on autopilot. Built for businesses across
             USA, Canada and Dubai.
           </p>
-          <div className="mt-5 flex items-center gap-3">
-            <a
-              href="#"
-              aria-label="Twitter"
-              className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            >
-              <Twitter className="h-3.5 w-3.5" />
-            </a>
-            <a
-              href="#"
-              aria-label="LinkedIn"
-              className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            >
-              <Linkedin className="h-3.5 w-3.5" />
-            </a>
-            <a
-              href="mailto:hello@vocallm.com"
-              aria-label="Email"
-              className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            >
-              <Mail className="h-3.5 w-3.5" />
-            </a>
-          </div>
+          <ul className="mt-5 space-y-2.5">
+            <li>
+              <a
+                href="mailto:hr@wayneesolutions.com"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                hr@wayneesolutions.com
+              </a>
+            </li>
+            <li className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              India · USA · Canada · Dubai
+            </li>
+          </ul>
         </div>
 
         <FooterCol
@@ -184,10 +176,7 @@ function MarketingFooter() {
         <FooterCol
           title="Company"
           items={[
-            ["About us", "/"],
             ["Contact", "/contact"],
-            ["Privacy policy", "/"],
-            ["Terms of service", "/"],
           ]}
         />
         <FooterCol
@@ -195,7 +184,6 @@ function MarketingFooter() {
           items={[
             ["Client login", "/login"],
             ["Request access", "/register"],
-            ["Admin login", "/admin/login"],
           ]}
         />
       </div>
@@ -203,7 +191,7 @@ function MarketingFooter() {
       {/* Bottom bar */}
       <div className="border-t border-border bg-muted/30">
         <div className="container-page py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>© {year} Wayne Solutions · VoCallM. All rights reserved.</span>
+          <span>© {year} Wayne E Solutions · VoCallM. All rights reserved.</span>
           <div className="flex items-center gap-4">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-success" />

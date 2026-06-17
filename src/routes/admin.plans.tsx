@@ -33,7 +33,7 @@ function planToForm(p: Plan): FormState {
 
 function PlansPage() {
   const qc = useQueryClient();
-  const [modal, setModal]           = useState<"create" | "edit" | null>(null);
+  const [modal, setModal]           = useState<boolean>(false);
   const [editId, setEditId]         = useState<string | null>(null);
   const [form, setForm]             = useState<FormState>(emptyForm);
   const [selected, setSelected]     = useState<Plan | null>(null);
@@ -47,7 +47,7 @@ function PlansPage() {
   const f = (key: keyof FormState, val: string | boolean) =>
     setForm((p) => ({ ...p, [key]: val }));
 
-  const openCreate = () => { setForm(emptyForm); setEditId(null); setModal("create"); };
+  const openCreate = () => { setForm(emptyForm); setEditId(null); setModal(true); };
   const buildPayload = () => ({
     name: form.name.trim(), blurb: form.blurb.trim() || undefined,
     price: parseFloat(form.price),
@@ -67,15 +67,7 @@ function PlansPage() {
     onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to create plan"),
   });
 
-  const updateMut = useMutation({
-    mutationFn: () => adminPlansApi.update(editId!, buildPayload()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "plans"] });
-      qc.invalidateQueries({ queryKey: ["public", "plans"] });
-      toast.success("Plan updated"); setModal(null);
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to update plan"),
-  });
+  const updateMut = { isPending: false }; // edit disabled
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminPlansApi.remove(id),
@@ -89,9 +81,21 @@ function PlansPage() {
     onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to delete plan"),
   });
 
+  const toggleMut = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      adminPlansApi.update(id, { isActive }),
+    onSuccess: (updated) => {
+      qc.invalidateQueries({ queryKey: ["admin", "plans"] });
+      qc.invalidateQueries({ queryKey: ["public", "plans"] });
+      toast.success(updated.isActive ? "Plan activated" : "Plan deactivated");
+      if (selected?.id === updated.id) setSelected(updated);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to update plan"),
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (modal === "edit") updateMut.mutate(); else createMut.mutate();
+    createMut.mutate();
   };
 
   const busy = createMut.isPending || updateMut.isPending;
@@ -167,18 +171,26 @@ function PlansPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          plan.isActive ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
-                        }`}>
-                          {plan.isActive ? "Active" : "Inactive"}
-                        </span>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => toggleMut.mutate({ id: plan.id, isActive: !plan.isActive })}
+                          disabled={toggleMut.isPending}
+                          title={plan.isActive ? "Click to deactivate" : "Click to activate"}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+                            plan.isActive ? "bg-success" : "bg-muted-foreground/30"
+                          }`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                            plan.isActive ? "translate-x-6" : "translate-x-1"
+                          }`} />
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(plan); }}
                             className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-colors"
+                            title="Delete plan"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -241,12 +253,25 @@ function PlansPage() {
             </div>
 
             {/* Meta */}
-            <div className="px-5 py-4 border-b border-border space-y-2 text-sm">
-              <div className="flex justify-between">
+            <div className="px-5 py-4 border-b border-border space-y-3 text-sm">
+              <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Status</span>
-                <span className={`font-medium ${selected.isActive ? "text-success" : "text-muted-foreground"}`}>
-                  {selected.isActive ? "Active" : "Inactive"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium ${selected.isActive ? "text-success" : "text-muted-foreground"}`}>
+                    {selected.isActive ? "Active" : "Inactive"}
+                  </span>
+                  <button
+                    onClick={() => toggleMut.mutate({ id: selected.id, isActive: !selected.isActive })}
+                    disabled={toggleMut.isPending}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+                      selected.isActive ? "bg-success" : "bg-muted-foreground/30"
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      selected.isActive ? "translate-x-6" : "translate-x-1"
+                    }`} />
+                  </button>
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Display order</span>
@@ -303,13 +328,13 @@ function PlansPage() {
         document.body
       )}
 
-      {/* ── Create / Edit modal ── */}
+      {/* ── Create modal ── */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-lg overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="font-semibold">{modal === "edit" ? "Edit plan" : "New plan"}</h2>
-              <button onClick={() => setModal(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-secondary">
+              <h2 className="font-semibold">New plan</h2>
+              <button onClick={() => setModal(false)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -366,11 +391,11 @@ function PlansPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModal(null)} className="flex-1 h-10 rounded-lg border border-border bg-background text-sm font-medium hover:bg-secondary transition-colors">
+                <button type="button" onClick={() => setModal(false)} className="flex-1 h-10 rounded-lg border border-border bg-background text-sm font-medium hover:bg-secondary transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={busy} className="flex-1 h-10 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                  {busy ? "Saving…" : modal === "edit" ? "Save changes" : "Create plan"}
+                  {busy ? "Saving…" : "Create plan"}
                 </button>
               </div>
             </form>

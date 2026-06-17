@@ -127,9 +127,9 @@ export const mockLeads: Lead[] = [
   },
 ];
 
-const sampleTranscript = `Agent: Hi, this is Alex from Wayne Solutions. Am I speaking with John Smith?
+const sampleTranscript = `Agent: Hi, this is Alex from Wayne E Solutions. Am I speaking with John Smith?
 Prospect: Yes, that's me. Who is this?
-Agent: Hi John, I'm Alex from Wayne Solutions — we help companies like yours with IT development and staff augmentation. Do you have 60 seconds?
+Agent: Hi John, I'm Alex from Wayne E Solutions — we help companies like yours with IT development and staff augmentation. Do you have 60 seconds?
 Prospect: Sure, go ahead.
 Agent: Great. We work with CTOs in the US to build custom software and provide dedicated developers. Are you currently facing any challenges with your tech team capacity?
 Prospect: Actually yes, we're looking to scale our dev team but hiring is slow.
@@ -228,7 +228,7 @@ export const mockCampaignSettings: CampaignSettings = {
 };
 
 export const mockAgentSettings: AgentSettings = {
-  systemPrompt: `You are Alex, a professional sales representative for Wayne Solutions, an IT services company based in India serving clients in the USA, Canada, and Dubai. You are making a friendly, professional cold call.
+  systemPrompt: `You are Alex, a professional sales representative for Wayne E Solutions, an IT services company based in India serving clients in the USA, Canada, and Dubai. You are making a friendly, professional cold call.
 
 YOUR GOAL: Qualify the prospect and book a 15-minute discovery call.
 
@@ -252,7 +252,7 @@ RULES:
 - Always sound warm, confident, not pushy.`,
   voiceId: "21m00Tcm4TlvDq8ikWAM",
   voiceProvider: "11labs",
-  firstMessage: "Hi, this is Alex from Wayne Solutions. Am I speaking with the right person?",
+  firstMessage: "Hi, this is Alex from Wayne E Solutions. Am I speaking with the right person?",
   llmModel: "gpt-4o-mini",
   maxTokens: 150,
   temperature: 0.7,

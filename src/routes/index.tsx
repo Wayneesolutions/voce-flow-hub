@@ -399,7 +399,7 @@ const features = [
   {
     icon: <ShieldCheck className="h-5 w-5" />,
     title: "Human-reviewed",
-    body: "Wayne Solutions reviews and approves every script before it goes live.",
+    body: "Wayne E Solutions reviews and approves every script before it goes live.",
   },
   {
     icon: <PhoneCall className="h-5 w-5" />,

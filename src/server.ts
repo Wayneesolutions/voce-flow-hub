@@ -37,8 +37,50 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+// Forward /api/* and /uploads/* to the Express backend.
+// vite.server.proxy only covers Vite's asset/HMR layer — the Nitro server
+// that handles real requests needs its own proxy logic.
+const API_TARGET =
+  (import.meta.env?.VITE_API_BASE_URL as string | undefined) ??
+  (typeof process !== "undefined" ? process.env?.VITE_API_BASE_URL : undefined) ??
+  "http://localhost:3001";
+
+async function proxyToBackend(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const target = API_TARGET.replace(/\/$/, "");
+  const targetUrl = `${target}${url.pathname}${url.search}`;
+
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.delete("connection");
+
+  const init: RequestInit = { method: request.method, headers, redirect: "follow" };
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    // Read body into a buffer so it can be forwarded without stream-duplex issues
+    init.body = await request.arrayBuffer();
+  }
+
+  try {
+    return await fetch(targetUrl, init);
+  } catch (err) {
+    console.error("[api proxy]", err);
+    return new Response(JSON.stringify({ error: "Backend unavailable" }), {
+      status: 502,
+      headers: { "content-type": "application/json" },
+    });
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const { pathname } = new URL(request.url);
+
+    // Proxy backend paths before TanStack Start handles them
+    if (pathname.startsWith("/api/") || pathname.startsWith("/uploads/")) {
+      return proxyToBackend(request);
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

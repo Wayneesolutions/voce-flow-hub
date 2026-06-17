@@ -22,7 +22,7 @@ import { store } from "@/store";
 import { useQuery } from "@tanstack/react-query";
 import { tenantApi } from "@/lib/api";
 
-function PlanGate({ accentColor }: { accentColor: string }) {
+function PlanGate({ accentColor, expired }: { accentColor: string; expired?: boolean }) {
   const LOCKED_FEATURES = [
     { icon: Megaphone, label: "AI Calling Campaigns" },
     { icon: Upload,    label: "Lead Management" },
@@ -42,10 +42,21 @@ function PlanGate({ accentColor }: { accentColor: string }) {
           <Lock className="h-9 w-9" style={{ color: accentColor }} />
         </div>
 
-        <h2 className="text-2xl font-semibold tracking-tight">Activate your plan</h2>
-        <p className="mt-2 text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
-          Your account is ready. Choose a plan to unlock AI calling campaigns and all platform features.
-        </p>
+        {expired ? (
+          <>
+            <h2 className="text-2xl font-semibold tracking-tight">Your plan has expired</h2>
+            <p className="mt-2 text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
+              Your subscription ended. Renew now to restore access to all features and resume your campaigns.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-2xl font-semibold tracking-tight">Activate your plan</h2>
+            <p className="mt-2 text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
+              Your account is ready. Choose a plan to unlock AI calling campaigns and all platform features.
+            </p>
+          </>
+        )}
 
         <div className="mt-7 grid grid-cols-2 gap-2.5 text-left max-w-sm mx-auto">
           {LOCKED_FEATURES.map(({ icon: Icon, label }) => (
@@ -93,6 +104,10 @@ const items: NavItem[] = [
 
 export const Route = createFileRoute("/portal")({
   beforeLoad: () => {
+    // localStorage is unavailable during SSR — skip the guard and let the
+    // client handle it after hydration (component-level null guard below).
+    if (typeof window === "undefined") return;
+
     const client = store.getState().userAuth.user;
     if (!client) throw redirect({ to: "/login" });
   },
@@ -121,7 +136,12 @@ function PortalLayout() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const isOnBilling = currentPath.startsWith("/portal/billing");
-  const hasPlan = !!me?.plan;
+
+  // Plan is valid if: plan exists AND (it's a free plan OR it hasn't expired yet)
+  const planExpiry = me?.planExpiresAt ? new Date(me.planExpiresAt) : null;
+  const planExpired = planExpiry ? planExpiry < new Date() : false;
+  const hasPlan = !!me?.plan && !planExpired;
+
   // Only gate once me is confirmed loaded (avoids flashing gate on page load)
   const showGate = !meLoading && me !== undefined && !hasPlan && !isOnBilling;
 
@@ -183,7 +203,7 @@ function PortalLayout() {
           </div>
         }
       />
-      {showGate ? <PlanGate accentColor={accentColor} /> : <Outlet />}
+      {showGate ? <PlanGate accentColor={accentColor} expired={planExpired} /> : <Outlet />}
 
       {/* Logout confirmation modal */}
       {logoutModal && createPortal(

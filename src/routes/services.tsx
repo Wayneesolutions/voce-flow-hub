@@ -58,7 +58,7 @@ const CORE_SERVICES = [
   {
     icon: ShieldCheck,
     title: "Human Script Review",
-    body: "Every script goes through a Wayne Solutions account manager before going live — checking compliance, pitch quality and tone.",
+    body: "Every script goes through a Wayne E Solutions account manager before going live — checking compliance, pitch quality and tone.",
     highlights: ["FTC / TCPA compliant review", "Approved within hours", "Feedback loop if changes needed"],
   },
   {

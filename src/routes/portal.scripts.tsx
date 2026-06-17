@@ -32,21 +32,10 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; Icon: React.El
 };
 
 const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "Hindi (हिन्दी)" },
-  { code: "es", label: "Spanish (Español)" },
-  { code: "fr", label: "French (Français)" },
-  { code: "de", label: "German (Deutsch)" },
-  { code: "pt", label: "Portuguese (Português)" },
-  { code: "ar", label: "Arabic (العربية)" },
-  { code: "zh", label: "Chinese (中文)" },
-  { code: "ja", label: "Japanese (日本語)" },
-  { code: "ko", label: "Korean (한국어)" },
-  { code: "ru", label: "Russian (Русский)" },
-  { code: "it", label: "Italian (Italiano)" },
-  { code: "nl", label: "Dutch (Nederlands)" },
-  { code: "tr", label: "Turkish (Türkçe)" },
-  { code: "pl", label: "Polish (Polski)" },
+  { code: "en",      label: "English" },
+  { code: "hi",      label: "Hindi (हिन्दी)" },
+  { code: "hinglish", label: "Hinglish (Hindi + English mix)" },
+  { code: "pa",      label: "Punjabi (ਪੰਜਾਬੀ)" },
 ];
 
 const defaultForm = {
