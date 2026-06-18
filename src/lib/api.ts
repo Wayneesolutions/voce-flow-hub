@@ -535,6 +535,32 @@ export const tenantApi = {
     http.patch("/tenant/password", { currentPassword, newPassword }).then((r) => r.data),
 };
 
+// ── Client portal: Sentiment / Live calls ────────────────────────────────────
+
+export interface ActiveCall {
+  callId:          string
+  status:          string
+  startedAt:       string | null
+  lead:            { id: string; name: string; company: string | null }
+  campaign:        string | null
+  sentiment:       'VERY_POSITIVE' | 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'VERY_NEGATIVE' | 'UNKNOWN'
+  intent:          'HOT' | 'WARM' | 'COLD' | 'UNKNOWN'
+  suggestedAction: 'KEEP_GOING' | 'PUSH_FOR_MEETING' | 'SLOW_DOWN' | 'END_CALL' | null
+}
+
+export const sentimentApi = {
+  active: (): Promise<{ activeCalls: ActiveCall[]; total: number }> =>
+    http.get('/sentiment/active').then((r) => r.data),
+
+  call: (callId: string): Promise<{
+    callId: string; status: string; lead: ActiveCall['lead'];
+    startedAt: string | null; durationSeconds: number;
+    overallScore: string; latestSentiment: string | null;
+    latestIntent: string | null; suggestedAction: string | null;
+    buyingSignals: string[]; log: object[];
+  }> => http.get(`/sentiment/call/${callId}`).then((r) => r.data),
+}
+
 // ── Client portal: Voice cloning ─────────────────────────────────────────────
 
 export const portalVoiceApi = {

@@ -25,6 +25,7 @@ import { Route as PortalVoiceRouteImport } from './routes/portal.voice'
 import { Route as PortalSettingsRouteImport } from './routes/portal.settings'
 import { Route as PortalScriptsRouteImport } from './routes/portal.scripts'
 import { Route as PortalMeetingsRouteImport } from './routes/portal.meetings'
+import { Route as PortalLiveCallsRouteImport } from './routes/portal.live-calls'
 import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
 import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
@@ -118,6 +119,11 @@ const PortalScriptsRoute = PortalScriptsRouteImport.update({
 const PortalMeetingsRoute = PortalMeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalLiveCallsRoute = PortalLiveCallsRouteImport.update({
+  id: '/live-calls',
+  path: '/live-calls',
   getParentRoute: () => PortalRoute,
 } as any)
 const PortalLeadsRoute = PortalLeadsRouteImport.update({
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/leads': typeof PortalLeadsRoute
+  '/portal/live-calls': typeof PortalLiveCallsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/leads': typeof PortalLeadsRoute
+  '/portal/live-calls': typeof PortalLiveCallsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/leads': typeof PortalLeadsRoute
+  '/portal/live-calls': typeof PortalLiveCallsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/portal/calls'
     | '/portal/campaigns'
     | '/portal/leads'
+    | '/portal/live-calls'
     | '/portal/meetings'
     | '/portal/scripts'
     | '/portal/settings'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/portal/calls'
     | '/portal/campaigns'
     | '/portal/leads'
+    | '/portal/live-calls'
     | '/portal/meetings'
     | '/portal/scripts'
     | '/portal/settings'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/portal/calls'
     | '/portal/campaigns'
     | '/portal/leads'
+    | '/portal/live-calls'
     | '/portal/meetings'
     | '/portal/scripts'
     | '/portal/settings'
@@ -511,6 +523,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMeetingsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/live-calls': {
+      id: '/portal/live-calls'
+      path: '/live-calls'
+      fullPath: '/portal/live-calls'
+      preLoaderRoute: typeof PortalLiveCallsRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/leads': {
       id: '/portal/leads'
       path: '/leads'
@@ -645,6 +664,7 @@ interface PortalRouteChildren {
   PortalCallsRoute: typeof PortalCallsRoute
   PortalCampaignsRoute: typeof PortalCampaignsRoute
   PortalLeadsRoute: typeof PortalLeadsRoute
+  PortalLiveCallsRoute: typeof PortalLiveCallsRoute
   PortalMeetingsRoute: typeof PortalMeetingsRoute
   PortalScriptsRoute: typeof PortalScriptsRoute
   PortalSettingsRoute: typeof PortalSettingsRoute
@@ -657,6 +677,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalCallsRoute: PortalCallsRoute,
   PortalCampaignsRoute: PortalCampaignsRoute,
   PortalLeadsRoute: PortalLeadsRoute,
+  PortalLiveCallsRoute: PortalLiveCallsRoute,
   PortalMeetingsRoute: PortalMeetingsRoute,
   PortalScriptsRoute: PortalScriptsRoute,
   PortalSettingsRoute: PortalSettingsRoute,

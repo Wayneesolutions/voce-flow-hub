@@ -14,6 +14,7 @@ import {
   LogOut,
   Lock,
   ArrowRight,
+  Activity,
 } from "lucide-react";
 import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -97,6 +98,7 @@ const items: NavItem[] = [
   { to: "/portal/voice", label: "My Voice", icon: <Mic className="h-4 w-4" /> },
   { to: "/portal/campaigns", label: "Campaigns", icon: <Megaphone className="h-4 w-4" /> },
   { to: "/portal/calls", label: "Call Log", icon: <PhoneCall className="h-4 w-4" /> },
+  { to: "/portal/live-calls", label: "Live Calls", icon: <Activity className="h-4 w-4" /> },
   { to: "/portal/meetings", label: "Meetings", icon: <CalendarCheck className="h-4 w-4" /> },
   { to: "/portal/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
   { to: "/portal/settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
