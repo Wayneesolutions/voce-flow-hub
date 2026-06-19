@@ -32,10 +32,9 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; Icon: React.El
 };
 
 const LANGUAGES = [
-  { code: "en",      label: "English" },
-  { code: "hi",      label: "Hindi (हिन्दी)" },
-  { code: "hinglish", label: "Hinglish (Hindi + English mix)" },
-  { code: "pa",      label: "Punjabi (ਪੰਜਾਬੀ)" },
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi (हिन्दी)" },
+  { code: "pa", label: "Punjabi (ਪੰਜਾਬੀ)" },
 ];
 
 const defaultForm = {
