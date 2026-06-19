@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { adminScriptsApi } from "@/lib/api";
 import type { Script } from "@/lib/types";
-import { Check, FileText, X, MessageSquare, Loader2, BadgeCheck, Ban } from "lucide-react";
+import { Check, FileText, X, MessageSquare, Loader2, BadgeCheck, Ban, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const SCRIPT_LANGUAGES: Record<string, string> = {
@@ -64,6 +64,15 @@ function ScriptReview() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const resyncMut = useMutation({
+    mutationFn: (id: string) => adminScriptsApi.resync(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "scripts", "reviewed"] });
+      toast.success("Re-synced to Vapi — assistant updated with latest config");
+    },
+    onError: (err: Error) => toast.error(`Re-sync failed: ${err.message}`),
+  });
+
   return (
     <DashboardShell
       sidebar={null}
@@ -87,7 +96,7 @@ function ScriptReview() {
             <div className="text-lg font-semibold">All caught up!</div>
             <div className="text-sm text-muted-foreground mt-1">No scripts waiting for review.</div>
           </div>
-          <ReviewedTable scripts={reviewed} />
+          <ReviewedTable scripts={reviewed} onResync={(id) => resyncMut.mutate(id)} resyncingId={resyncMut.isPending ? resyncMut.variables : null} />
         </div>
       ) : (
         <>
@@ -226,7 +235,7 @@ function ScriptReview() {
             </main>
           )}
         </div>
-        <ReviewedTable scripts={reviewed} />
+        <ReviewedTable scripts={reviewed} onResync={(id) => resyncMut.mutate(id)} resyncingId={resyncMut.isPending ? resyncMut.variables : null} />
         </>
       )}
     </DashboardShell>
@@ -242,7 +251,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ReviewedTable({ scripts }: { scripts: Script[] }) {
+function ReviewedTable({ scripts, onResync, resyncingId }: {
+  scripts: Script[];
+  onResync: (id: string) => void;
+  resyncingId: string | null;
+}) {
   if (scripts.length === 0) return null;
   return (
     <div className="mt-2">
@@ -258,6 +271,7 @@ function ReviewedTable({ scripts }: { scripts: Script[] }) {
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Agent</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Reviewed</th>
+              <th className="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -279,6 +293,21 @@ function ReviewedTable({ scripts }: { scripts: Script[] }) {
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">
                   {s.reviewedAt ? new Date(s.reviewedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                </td>
+                <td className="px-4 py-3">
+                  {s.status === "APPROVED" && (
+                    <button
+                      onClick={() => onResync(s.id)}
+                      disabled={resyncingId === s.id}
+                      title="Re-push this script's config to Vapi"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-accent border border-border rounded px-2 py-1 disabled:opacity-50"
+                    >
+                      {resyncingId === s.id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <RefreshCw className="h-3 w-3" />}
+                      Re-sync
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

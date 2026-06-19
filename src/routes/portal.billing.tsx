@@ -1,6 +1,8 @@
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { billingApi, tenantApi, publicPlansApi } from "@/lib/api";
@@ -17,9 +19,72 @@ export const Route = createFileRoute("/portal/billing")({
   component: PortalBilling,
 });
 
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
+
 function authHeader() {
   const token = localStorage.getItem("vfh_token");
   return { Authorization: `Bearer ${token}` };
+}
+
+function AddCardFormInner({ onSuccess }: { onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await axios.post("/api/stripe/setup-intent", {}, { headers: authHeader() });
+      const { clientSecret } = data;
+      const result = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: { card: elements.getElement(CardElement)! },
+      });
+      if (result.error) {
+        setError(result.error.message || "Card error");
+        setLoading(false);
+        return;
+      }
+      await axios.post(
+        "/api/stripe/set-default-payment-method",
+        { paymentMethodId: result.setupIntent.payment_method },
+        { headers: authHeader() }
+      );
+      onSuccess();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } };
+      setError(e?.response?.data?.error || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="p-3 border border-border rounded-lg bg-background">
+        <CardElement options={{ style: { base: { fontSize: "16px", color: "inherit" } } }} />
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <button
+        type="submit"
+        disabled={loading || !stripe}
+        className="w-full h-10 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+      >
+        {loading ? "Saving…" : "Save Card"}
+      </button>
+    </form>
+  );
+}
+
+function AddCardForm({ onSuccess }: { onSuccess: () => void }) {
+  return (
+    <Elements stripe={stripePromise}>
+      <AddCardFormInner onSuccess={onSuccess} />
+    </Elements>
+  );
 }
 
 async function fetchInvoices() {
@@ -66,6 +131,7 @@ function PortalBilling() {
   const selectablePlans = allPlans;
 
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [showAddCard, setShowAddCard] = useState(false);
 
   // Plan is locked mid-cycle if an active Stripe subscription exists (regardless of planExpiresAt)
   const planExpiry = me?.planExpiresAt ? new Date(me.planExpiresAt) : null;
@@ -336,6 +402,39 @@ function PortalBilling() {
           {new Date(summary.period.to).toLocaleDateString()}
         </p>
       )}
+
+      {/* Card setup */}
+      <div className="mt-6 rounded-lg border border-border bg-card overflow-hidden">
+        <div className="p-5 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2 font-semibold">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            Payment Method
+          </div>
+          {!showAddCard && (
+            <button
+              onClick={() => setShowAddCard(true)}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Add / Update Card
+            </button>
+          )}
+        </div>
+        <div className="p-5">
+          {showAddCard ? (
+            <AddCardForm
+              onSuccess={() => {
+                setShowAddCard(false);
+                qc.invalidateQueries({ queryKey: ["tenant-me"] });
+                toast.success("Card saved successfully");
+              }}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Add a card to enable automatic billing for paid plans.
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Stripe invoices */}
       <div className="mt-6 rounded-lg border border-border bg-card overflow-hidden">

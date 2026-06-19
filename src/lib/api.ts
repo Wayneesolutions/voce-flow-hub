@@ -66,14 +66,7 @@ export const authApi = {
       const res = await adminHttp.post("/auth/admin/login", { email, password });
       return res.data;
     } catch (e) {
-      if (import.meta.env.PROD) throw new Error("Invalid admin credentials");
-      if (!axios.isAxiosError(e) || (e.response?.status && e.response.status < 500)) throw e;
-      if (!email.includes("admin") || password.length < 8)
-        throw new Error("Invalid admin credentials");
-      return {
-        token: "mock-admin-token",
-        user: { id: "mock", name: "Admin", email, role: "ADMIN" },
-      };
+      throw e;
     }
   },
 
@@ -162,6 +155,9 @@ export const adminScriptsApi = {
 
   reject: (scriptId: string, note: string): Promise<Script> =>
     adminHttp.post(`/admin/scripts/${scriptId}/reject`, { note }).then((r) => r.data),
+
+  resync: (scriptId: string): Promise<Script> =>
+    adminHttp.post(`/admin/scripts/${scriptId}/resync`).then((r) => r.data),
 };
 
 // ── Admin: Billing ────────────────────────────────────────────────────────────
