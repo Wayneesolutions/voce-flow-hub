@@ -62,7 +62,7 @@ function PlansPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "plans"] });
       qc.invalidateQueries({ queryKey: ["public", "plans"] });
-      toast.success("Plan created"); setModal(null);
+      toast.success("Plan created"); setModal(false);
     },
     onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to create plan"),
   });

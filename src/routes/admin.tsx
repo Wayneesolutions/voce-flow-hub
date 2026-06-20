@@ -69,7 +69,12 @@ function AdminLayout() {
 
   if (isAuthRoute) return <Outlet />;
 
-  const initials = admin.name
+  // The guards above already guarantee admin is non-null here at runtime —
+  // if !isAuthRoute && !admin we already returned null. TypeScript can't
+  // trace that across two separate if-branches, so we assert it explicitly.
+  const currentAdmin = admin!;
+
+  const initials = currentAdmin.name
     .split(" ")
     .map((s) => s[0])
     .join("")
@@ -100,8 +105,8 @@ function AdminLayout() {
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-white font-medium text-[13px] truncate">{admin.name}</div>
-              <div className="text-[11px] text-sidebar-foreground truncate">{admin.email}</div>
+              <div className="text-white font-medium text-[13px] truncate">{currentAdmin.name}</div>
+              <div className="text-[11px] text-sidebar-foreground truncate">{currentAdmin.email}</div>
             </div>
             <button
               onClick={() => setLogoutModal(true)}

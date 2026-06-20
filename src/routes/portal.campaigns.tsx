@@ -566,6 +566,32 @@ function Campaigns() {
                   ))}
                 </select>
               </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Call days</label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {["MON","TUE","WED","THU","FRI","SAT","SUN"].map((day) => {
+                    const active = form.callDays.split(",").includes(day);
+                    const toggle = () => {
+                      const days = form.callDays.split(",").filter(Boolean);
+                      const next = active ? days.filter((d) => d !== day) : [...days, day];
+                      f("callDays", next.join(","));
+                    };
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={toggle}
+                        className={`h-8 w-12 rounded-md text-xs font-medium border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Scheduled callbacks (lead requested a specific time) always fire regardless of these days.
+                </p>
+              </div>
               <div>
                 <label className="text-sm font-medium">Max attempts per lead</label>
                 <input

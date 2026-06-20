@@ -82,6 +82,7 @@ export interface Script {
   objections?: string;
   faqDocument?: string;
   agentName: string;
+  agentGender?: string;
   voiceId?: string;
   language?: string;
   status: ScriptStatus;

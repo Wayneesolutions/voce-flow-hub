@@ -93,7 +93,7 @@ function Leads() {
           </span>
           <Link
             to="/portal/leads"
-            search={{}}
+            search={{ campaignId: undefined, campaignName: undefined }}
             className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <X className="h-3 w-3" />

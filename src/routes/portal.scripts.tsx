@@ -40,6 +40,7 @@ const LANGUAGES = [
 const defaultForm = {
   name: "",
   agentName: "",
+  agentGender: "female",
   companyInfo: "",
   servicesInfo: "",
   goalText: "",
@@ -84,6 +85,7 @@ function Scripts() {
       scriptsApi.create({
         name: form.name,
         agentName: form.agentName,
+        agentGender: form.agentGender || "female",
         companyInfo: form.companyInfo,
         servicesInfo: form.servicesInfo,
         goalText: form.goalText,
@@ -238,6 +240,9 @@ function Scripts() {
                     </p>
                   </ScriptSection>
                 )}
+                <ScriptSection title="Agent gender">
+                  <p className="capitalize">{selected.agentGender ?? "female"}</p>
+                </ScriptSection>
                 <ScriptSection title="Call language">
                   <p>
                     {LANGUAGES.find((l) => l.code === (selected.language || "en"))?.label ?? "English"}
@@ -307,6 +312,31 @@ function Scripts() {
                   placeholder="Sarah"
                   className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Agent gender</label>
+                <div className="mt-1.5 flex gap-2">
+                  {[
+                    { value: "female", label: "Female" },
+                    { value: "male",   label: "Male" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => f("agentGender", opt.value)}
+                      className={`flex-1 h-10 rounded-md border text-sm font-medium transition-colors ${
+                        form.agentGender === opt.value
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sets correct verb forms for Hindi/Punjabi (e.g. "kar rahi hoon" vs "kar raha hoon")
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label className="text-sm font-medium">Call language</label>

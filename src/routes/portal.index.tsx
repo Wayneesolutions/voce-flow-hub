@@ -185,7 +185,7 @@ function PortalOverview() {
                     <div className="text-xs text-muted-foreground">{c.lead?.company}</div>
                   </td>
                   <td className="px-3 py-3 tabular-nums">
-                    {c.duration
+                    {c.duration !== null && c.duration !== undefined
                       ? `${Math.floor(c.duration / 60)}:${String(c.duration % 60).padStart(2, "0")}`
                       : "—"}
                   </td>

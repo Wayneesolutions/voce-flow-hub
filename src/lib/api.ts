@@ -384,6 +384,7 @@ export const scriptsApi = {
     goalText: string;
     objections?: string;
     agentName?: string;
+    agentGender?: string;
     voiceId?: string;
     language?: string;
   }): Promise<Script> =>
