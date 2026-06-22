@@ -5,8 +5,6 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { meetingsApi } from "@/lib/api";
 import {
   CalendarCheck2,
-  Mail,
-  Phone,
   Loader2,
   ExternalLink,
   PhoneCall,
@@ -249,23 +247,6 @@ function MeetingCard({ m }: { m: any }) {
               Join meeting
             </a>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href={m.leadEmail ? `mailto:${m.leadEmail}` : undefined}
-              className={`h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-sm transition-colors ${m.leadEmail ? "hover:bg-secondary" : "opacity-40 pointer-events-none"}`}
-              title={m.leadEmail ?? "No email on file"}
-            >
-              <Mail className="h-3.5 w-3.5" />
-              Email
-            </a>
-            <a
-              href={`tel:${m.leadPhone}`}
-              className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-sm hover:bg-secondary transition-colors"
-            >
-              <Phone className="h-3.5 w-3.5" />
-              Call
-            </a>
-          </div>
         </div>
       </div>
     </div>
