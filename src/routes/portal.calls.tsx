@@ -20,6 +20,7 @@ function Calls() {
   const { data, isLoading } = useQuery({
     queryKey: ["calls", page],
     queryFn: () => callsApi.list({ page, limit: LIMIT }),
+    refetchInterval: 30000, // refresh every 30s so completed calls show up once stale cleanup runs
   });
 
   const calls = data?.calls ?? [];

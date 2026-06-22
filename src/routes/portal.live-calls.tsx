@@ -40,6 +40,8 @@ const ACTION_LABEL: Record<string, string> = {
 
 // ── Live duration timer ───────────────────────────────────────────────────────
 
+const STALE_AFTER_SECONDS = 12 * 60 // 12 min — if a call runs this long with no data it's almost certainly a zombie
+
 function useDuration(startedAt: string | null) {
   const [secs, setSecs] = useState(0)
   useEffect(() => {
@@ -52,19 +54,19 @@ function useDuration(startedAt: string | null) {
   }, [startedAt])
   const m = Math.floor(secs / 60)
   const s = secs % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  return { display: `${m}:${String(s).padStart(2, '0')}`, isStale: secs > STALE_AFTER_SECONDS }
 }
 
 // ── Call card ─────────────────────────────────────────────────────────────────
 
 function CallCard({ call }: { call: ActiveCall }) {
-  const duration = useDuration(call.startedAt)
+  const { display: duration, isStale } = useDuration(call.startedAt)
   const sent     = SENTIMENT_STYLE[call.sentiment]
   const intent   = INTENT_STYLE[call.intent]
   const action   = call.suggestedAction ? ACTION_LABEL[call.suggestedAction] : null
 
   return (
-    <div className="rounded-lg border border-border bg-card p-5 flex flex-col gap-3">
+    <div className={`rounded-lg border bg-card p-5 flex flex-col gap-3 ${isStale ? 'border-warning/40 opacity-60' : 'border-border'}`}>
       {/* Header: name + live badge */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -73,10 +75,16 @@ function CallCard({ call }: { call: ActiveCall }) {
             <p className="text-xs text-muted-foreground truncate">{call.lead.company}</p>
           )}
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 text-success text-[11px] font-medium px-2.5 py-1 shrink-0">
-          <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-          LIVE {duration}
-        </span>
+        {isStale ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 text-warning text-[11px] font-medium px-2.5 py-1 shrink-0">
+            ⚠ May have ended
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 text-success text-[11px] font-medium px-2.5 py-1 shrink-0">
+            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+            LIVE {duration}
+          </span>
+        )}
       </div>
 
       {/* Campaign */}
@@ -84,10 +92,17 @@ function CallCard({ call }: { call: ActiveCall }) {
         <p className="text-xs text-muted-foreground">📋 {call.campaign}</p>
       )}
 
+      {/* Stale explanation */}
+      {isStale && (
+        <p className="text-xs text-warning/80 italic">
+          Call has been running {duration} — the end report may not have arrived yet. It will clear automatically.
+        </p>
+      )}
+
       {/* Sentiment + Intent — only show when AI has reported data */}
-      {call.sentiment === 'UNKNOWN' ? (
+      {!isStale && call.sentiment === 'UNKNOWN' ? (
         <p className="text-xs text-muted-foreground italic">Waiting for AI sentiment data...</p>
-      ) : (
+      ) : !isStale && (
         <div className="flex flex-wrap gap-2">
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${sent.cls}`}>
             {sent.label}

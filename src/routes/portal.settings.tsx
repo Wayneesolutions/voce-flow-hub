@@ -294,47 +294,6 @@ function Settings() {
           </div>
         </section>
 
-        {/* ── Integrations ─────────────────────────────────────── */}
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-          Integrations
-        </p>
-
-        <IntegrationCard
-          title="Cal.com"
-          description="Where meetings get booked when a prospect agrees to a call. Connect your own Cal.com account so meetings appear in your calendar."
-          connected={!!tenant.hasCalcom}
-          fields={[
-            { key: "calcomApiKey",      label: "API Key",       placeholder: "cal_live_…", secret: true },
-            { key: "calcomEventTypeId", label: "Event Type ID", placeholder: "123456",     secret: false },
-          ]}
-          onSave={(data) => integMut.mutate(data)}
-          saving={integMut.isPending}
-          error={integMut.isError ? (integMut.error as Error).message : undefined}
-        />
-
-        <IntegrationCard
-          title="HubSpot"
-          description="After each call, the prospect contact and call activity are logged here automatically."
-          connected={!!tenant.hasHubspot}
-          fields={[
-            { key: "hubspotAccessToken", label: "Private App Access Token", placeholder: "pat-na1-…", secret: true },
-          ]}
-          onSave={(data) => integMut.mutate(data)}
-          saving={integMut.isPending}
-          error={integMut.isError ? (integMut.error as Error).message : undefined}
-        />
-
-        <IntegrationCard
-          title="Google Calendar"
-          description="Optional — sync booked meetings directly to Google Calendar in addition to Cal.com."
-          connected={!!tenant.hasGcal}
-          fields={[
-            { key: "googleCalendarToken", label: "OAuth Token", placeholder: "ya29.…", secret: true },
-          ]}
-          onSave={(data) => integMut.mutate(data)}
-          saving={integMut.isPending}
-          error={integMut.isError ? (integMut.error as Error).message : undefined}
-        />
       </div>
     </DashboardShell>
   );
