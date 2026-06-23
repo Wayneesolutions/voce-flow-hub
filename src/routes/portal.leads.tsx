@@ -83,7 +83,7 @@ function Leads() {
     <DashboardShell
       sidebar={null}
       title="Upload leads"
-      subtitle={campaignId && campaignName ? `Showing leads for campaign: ${campaignName}` : "Upload a CSV file of contacts to call"}
+      subtitle={campaignId && campaignName ? `Showing leads for campaign: ${campaignName}` : "Upload a CSV or Excel file of contacts to call"}
     >
       {campaignId && (
         <div className="mb-4 flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/5 px-4 py-2.5 text-sm">
@@ -110,7 +110,7 @@ function Leads() {
           <input
             ref={fileRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -122,10 +122,10 @@ function Leads() {
             )}
           </div>
           <h3 className="mt-4 text-lg font-semibold">
-            {uploading ? "Uploading…" : "Drop your CSV here"}
+            {uploading ? "Uploading…" : "Drop your CSV or Excel file here"}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            or click to browse · Max 10,000 leads per upload
+            or click to browse · CSV or XLSX · Max 10,000 leads per upload
           </p>
           <button
             className="mt-5 h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
@@ -217,7 +217,7 @@ function Leads() {
             {!isLoading && leads.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
-                  No leads found. Upload a CSV to get started.
+                  No leads found. Upload a CSV or Excel file to get started.
                 </td>
               </tr>
             )}
