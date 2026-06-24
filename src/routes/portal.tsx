@@ -15,8 +15,12 @@ import {
   Lock,
   ArrowRight,
   Activity,
+  PhoneIncoming,
+  Bot,
+  BarChart3,
+  Hash,
 } from "lucide-react";
-import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
+import { DashboardSidebar, type NavEntry } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearUser } from "@/store/userAuthSlice";
 import { store } from "@/store";
@@ -91,7 +95,8 @@ function PlanGate({ accentColor, expired }: { accentColor: string; expired?: boo
   );
 }
 
-const items: NavItem[] = [
+const items: NavEntry[] = [
+  { section: "Outbound" },
   { to: "/portal", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
   { to: "/portal/leads", label: "Upload Leads", icon: <Upload className="h-4 w-4" /> },
   { to: "/portal/scripts", label: "Scripts", icon: <FileText className="h-4 w-4" /> },
@@ -100,6 +105,12 @@ const items: NavItem[] = [
   { to: "/portal/calls", label: "Call Log", icon: <PhoneCall className="h-4 w-4" /> },
   { to: "/portal/live-calls", label: "Live Calls", icon: <Activity className="h-4 w-4" /> },
   { to: "/portal/meetings", label: "Meetings", icon: <CalendarCheck className="h-4 w-4" /> },
+  { section: "Inbound" },
+  { to: "/portal/inbound/receptionist", label: "Receptionist", icon: <Bot className="h-4 w-4" /> },
+  { to: "/portal/inbound/numbers", label: "Phone Numbers", icon: <Hash className="h-4 w-4" /> },
+  { to: "/portal/inbound/calls", label: "Inbound Calls", icon: <PhoneIncoming className="h-4 w-4" /> },
+  { to: "/portal/inbound/analytics", label: "Inbound Analytics", icon: <BarChart3 className="h-4 w-4" /> },
+  { section: "Account" },
   { to: "/portal/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
   { to: "/portal/settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
 ];

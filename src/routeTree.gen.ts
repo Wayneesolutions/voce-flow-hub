@@ -27,6 +27,7 @@ import { Route as PortalScriptsRouteImport } from './routes/portal.scripts'
 import { Route as PortalMeetingsRouteImport } from './routes/portal.meetings'
 import { Route as PortalLiveCallsRouteImport } from './routes/portal.live-calls'
 import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
+import { Route as PortalInboundRouteImport } from './routes/portal.inbound'
 import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
@@ -40,6 +41,10 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-password'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
+import { Route as PortalInboundReceptionistRouteImport } from './routes/portal.inbound.receptionist'
+import { Route as PortalInboundNumbersRouteImport } from './routes/portal.inbound.numbers'
+import { Route as PortalInboundCallsRouteImport } from './routes/portal.inbound.calls'
+import { Route as PortalInboundAnalyticsRouteImport } from './routes/portal.inbound.analytics'
 
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
@@ -131,6 +136,11 @@ const PortalLeadsRoute = PortalLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalInboundRoute = PortalInboundRouteImport.update({
+  id: '/inbound',
+  path: '/inbound',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalCampaignsRoute = PortalCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
@@ -196,6 +206,27 @@ const AdminBillingRoute = AdminBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AdminRoute,
 } as any)
+const PortalInboundReceptionistRoute =
+  PortalInboundReceptionistRouteImport.update({
+    id: '/receptionist',
+    path: '/receptionist',
+    getParentRoute: () => PortalInboundRoute,
+  } as any)
+const PortalInboundNumbersRoute = PortalInboundNumbersRouteImport.update({
+  id: '/numbers',
+  path: '/numbers',
+  getParentRoute: () => PortalInboundRoute,
+} as any)
+const PortalInboundCallsRoute = PortalInboundCallsRouteImport.update({
+  id: '/calls',
+  path: '/calls',
+  getParentRoute: () => PortalInboundRoute,
+} as any)
+const PortalInboundAnalyticsRoute = PortalInboundAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => PortalInboundRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -221,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
@@ -229,6 +261,10 @@ export interface FileRoutesByFullPath {
   '/portal/voice': typeof PortalVoiceRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
+  '/portal/inbound/calls': typeof PortalInboundCallsRoute
+  '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
+  '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -252,6 +288,7 @@ export interface FileRoutesByTo {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
@@ -260,6 +297,10 @@ export interface FileRoutesByTo {
   '/portal/voice': typeof PortalVoiceRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
+  '/portal/inbound/calls': typeof PortalInboundCallsRoute
+  '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
+  '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -286,6 +327,7 @@ export interface FileRoutesById {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
   '/portal/meetings': typeof PortalMeetingsRoute
@@ -294,6 +336,10 @@ export interface FileRoutesById {
   '/portal/voice': typeof PortalVoiceRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
+  '/portal/inbound/calls': typeof PortalInboundCallsRoute
+  '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
+  '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -321,6 +367,7 @@ export interface FileRouteTypes {
     | '/portal/billing'
     | '/portal/calls'
     | '/portal/campaigns'
+    | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
     | '/portal/meetings'
@@ -329,6 +376,10 @@ export interface FileRouteTypes {
     | '/portal/voice'
     | '/admin/'
     | '/portal/'
+    | '/portal/inbound/analytics'
+    | '/portal/inbound/calls'
+    | '/portal/inbound/numbers'
+    | '/portal/inbound/receptionist'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -352,6 +403,7 @@ export interface FileRouteTypes {
     | '/portal/billing'
     | '/portal/calls'
     | '/portal/campaigns'
+    | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
     | '/portal/meetings'
@@ -360,6 +412,10 @@ export interface FileRouteTypes {
     | '/portal/voice'
     | '/admin'
     | '/portal'
+    | '/portal/inbound/analytics'
+    | '/portal/inbound/calls'
+    | '/portal/inbound/numbers'
+    | '/portal/inbound/receptionist'
   id:
     | '__root__'
     | '/'
@@ -385,6 +441,7 @@ export interface FileRouteTypes {
     | '/portal/billing'
     | '/portal/calls'
     | '/portal/campaigns'
+    | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
     | '/portal/meetings'
@@ -393,6 +450,10 @@ export interface FileRouteTypes {
     | '/portal/voice'
     | '/admin/'
     | '/portal/'
+    | '/portal/inbound/analytics'
+    | '/portal/inbound/calls'
+    | '/portal/inbound/numbers'
+    | '/portal/inbound/receptionist'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -537,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalLeadsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/inbound': {
+      id: '/portal/inbound'
+      path: '/inbound'
+      fullPath: '/portal/inbound'
+      preLoaderRoute: typeof PortalInboundRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/campaigns': {
       id: '/portal/campaigns'
       path: '/campaigns'
@@ -628,6 +696,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBillingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/portal/inbound/receptionist': {
+      id: '/portal/inbound/receptionist'
+      path: '/receptionist'
+      fullPath: '/portal/inbound/receptionist'
+      preLoaderRoute: typeof PortalInboundReceptionistRouteImport
+      parentRoute: typeof PortalInboundRoute
+    }
+    '/portal/inbound/numbers': {
+      id: '/portal/inbound/numbers'
+      path: '/numbers'
+      fullPath: '/portal/inbound/numbers'
+      preLoaderRoute: typeof PortalInboundNumbersRouteImport
+      parentRoute: typeof PortalInboundRoute
+    }
+    '/portal/inbound/calls': {
+      id: '/portal/inbound/calls'
+      path: '/calls'
+      fullPath: '/portal/inbound/calls'
+      preLoaderRoute: typeof PortalInboundCallsRouteImport
+      parentRoute: typeof PortalInboundRoute
+    }
+    '/portal/inbound/analytics': {
+      id: '/portal/inbound/analytics'
+      path: '/analytics'
+      fullPath: '/portal/inbound/analytics'
+      preLoaderRoute: typeof PortalInboundAnalyticsRouteImport
+      parentRoute: typeof PortalInboundRoute
+    }
   }
 }
 
@@ -659,10 +755,29 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface PortalInboundRouteChildren {
+  PortalInboundAnalyticsRoute: typeof PortalInboundAnalyticsRoute
+  PortalInboundCallsRoute: typeof PortalInboundCallsRoute
+  PortalInboundNumbersRoute: typeof PortalInboundNumbersRoute
+  PortalInboundReceptionistRoute: typeof PortalInboundReceptionistRoute
+}
+
+const PortalInboundRouteChildren: PortalInboundRouteChildren = {
+  PortalInboundAnalyticsRoute: PortalInboundAnalyticsRoute,
+  PortalInboundCallsRoute: PortalInboundCallsRoute,
+  PortalInboundNumbersRoute: PortalInboundNumbersRoute,
+  PortalInboundReceptionistRoute: PortalInboundReceptionistRoute,
+}
+
+const PortalInboundRouteWithChildren = PortalInboundRoute._addFileChildren(
+  PortalInboundRouteChildren,
+)
+
 interface PortalRouteChildren {
   PortalBillingRoute: typeof PortalBillingRoute
   PortalCallsRoute: typeof PortalCallsRoute
   PortalCampaignsRoute: typeof PortalCampaignsRoute
+  PortalInboundRoute: typeof PortalInboundRouteWithChildren
   PortalLeadsRoute: typeof PortalLeadsRoute
   PortalLiveCallsRoute: typeof PortalLiveCallsRoute
   PortalMeetingsRoute: typeof PortalMeetingsRoute
@@ -676,6 +791,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalBillingRoute: PortalBillingRoute,
   PortalCallsRoute: PortalCallsRoute,
   PortalCampaignsRoute: PortalCampaignsRoute,
+  PortalInboundRoute: PortalInboundRouteWithChildren,
   PortalLeadsRoute: PortalLeadsRoute,
   PortalLiveCallsRoute: PortalLiveCallsRoute,
   PortalMeetingsRoute: PortalMeetingsRoute,

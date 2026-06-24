@@ -112,6 +112,7 @@ export interface Campaign {
   createdAt: string;
   script?: { id: string; name: string; status: ScriptStatus; agentName: string };
   _count?: { leads: number; calls: number };
+  outcomeCounts?: Partial<Record<CallOutcome, number>>;
 }
 
 export interface Meeting {
@@ -210,7 +211,7 @@ export interface Tenant {
   clonedVoiceName?: string | null;
   plan?: { id: string; name: string; price: number; minutesIncluded: number } | null;
   phoneNumbers?: TenantPhone[];
-  _count?: { leads: number; calls: number; campaigns: number };
+  _count?: { leads: number; calls: number; campaigns: number; inboundCalls: number; inboundAssistants: number };
 }
 
 export interface Plan {
@@ -233,6 +234,7 @@ export interface AdminStats {
   minutesToday: number;
   meetingsToday: number;
   revenueToday: number;
+  inboundCallsToday: number;
 }
 
 export interface AdminBillingSummary {

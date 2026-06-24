@@ -558,6 +558,167 @@ export const sentimentApi = {
   }> => http.get(`/sentiment/call/${callId}`).then((r) => r.data),
 }
 
+// ── Inbound: Phone Numbers ────────────────────────────────────────────────────
+
+export interface InboundPhoneNumber {
+  id:          string;
+  tenantId:    string;
+  phoneNumber: string;
+  country:     string;
+  twilioSid:   string | null;
+  vapiPhoneId: string | null;
+  provider:    string;
+  isActive:    boolean;
+  createdAt:   string;
+  assistants?: { id: string; agentName: string; status: string }[];
+}
+
+export interface AvailableInboundNumber {
+  phoneNumber:  string;
+  friendlyName: string;
+  locality:     string;
+  region:       string;
+  postalCode:   string | null;
+}
+
+export const inboundPhoneApi = {
+  list: (): Promise<InboundPhoneNumber[]> =>
+    http.get('/inbound/phone-numbers').then((r) => r.data),
+
+  search: (params: { country?: string; areaCode?: string; contains?: string }): Promise<AvailableInboundNumber[]> =>
+    http.post('/inbound/phone-numbers/search', params).then((r) => r.data),
+
+  buy: (params: { phoneNumber: string; country?: string }): Promise<InboundPhoneNumber> =>
+    http.post('/inbound/phone-numbers/buy', params).then((r) => r.data),
+
+  import: (params: { phoneNumber: string; twilioSid: string; country?: string }): Promise<InboundPhoneNumber> =>
+    http.post('/inbound/phone-numbers/import', params).then((r) => r.data),
+
+  remove: (id: string): Promise<void> =>
+    http.delete(`/inbound/phone-numbers/${id}`).then((r) => r.data),
+};
+
+// ── Inbound: Assistants ───────────────────────────────────────────────────────
+
+export interface InboundAssistant {
+  id:              string;
+  tenantId:        string;
+  phoneNumberId:   string | null;
+  phoneNumber?:    { id: string; phoneNumber: string; country: string } | null;
+  agentName:       string;
+  language:        string;
+  voiceId:         string | null;
+  agentGender:     string;
+  businessName:    string;
+  businessType:    string | null;
+  servicesInfo:    string | null;
+  faqText:         string | null;
+  businessHours:   Record<string, string> | null;
+  transferNumber:  string | null;
+  transferMessage: string | null;
+  bookingUrl:      string | null;
+  maxCallDuration: number;
+  firstMessage:    string | null;
+  systemPrompt:    string | null;
+  vapiAssistantId: string | null;
+  status:          'draft' | 'active' | 'paused';
+  createdAt:       string;
+  updatedAt:       string;
+}
+
+export interface InboundAssistantInput {
+  agentName:       string;
+  language:        string;
+  voiceId?:        string;
+  agentGender:     string;
+  businessName:    string;
+  businessType?:   string;
+  servicesInfo?:   string;
+  faqText?:        string;
+  businessHours?:  Record<string, string>;
+  transferNumber?: string;
+  transferMessage?: string;
+  bookingUrl?:     string;
+  maxCallDuration?: number;
+}
+
+export const inboundAssistantApi = {
+  list: (): Promise<InboundAssistant[]> =>
+    http.get('/inbound/assistants').then((r) => r.data),
+
+  get: (id: string): Promise<InboundAssistant> =>
+    http.get(`/inbound/assistants/${id}`).then((r) => r.data),
+
+  create: (data: InboundAssistantInput): Promise<InboundAssistant> =>
+    http.post('/inbound/assistants', data).then((r) => r.data),
+
+  update: (id: string, data: Partial<InboundAssistantInput>): Promise<InboundAssistant> =>
+    http.patch(`/inbound/assistants/${id}`, data).then((r) => r.data),
+
+  activate: (id: string, phoneNumberId: string): Promise<{ assistant: InboundAssistant; vapiAssistantId: string; message: string }> =>
+    http.post(`/inbound/assistants/${id}/activate`, { phoneNumberId }).then((r) => r.data),
+
+  deactivate: (id: string): Promise<InboundAssistant> =>
+    http.post(`/inbound/assistants/${id}/deactivate`).then((r) => r.data),
+};
+
+// ── Inbound: Calls ────────────────────────────────────────────────────────────
+
+export interface InboundCall {
+  id:              string;
+  tenantId:        string;
+  assistantId:     string | null;
+  assistant?:      { agentName: string; businessName: string } | null;
+  phoneNumberId:   string | null;
+  vapiCallId:      string | null;
+  callerNumber:    string | null;
+  calledNumber:    string | null;
+  durationSeconds: number | null;
+  outcome:         string | null;
+  summary:         string | null;
+  transcript:      { role: string; content: string }[] | null;
+  recordingUrl:    string | null;
+  costUsd:         number | null;
+  startedAt:       string | null;
+  endedAt:         string | null;
+  createdAt:       string;
+}
+
+export const inboundCallsApi = {
+  list: (params?: { limit?: number; offset?: number; outcome?: string; assistantId?: string }): Promise<{ calls: InboundCall[]; total: number }> =>
+    http.get('/inbound/calls', { params }).then((r) => r.data),
+
+  live: (): Promise<{ calls: InboundCall[]; total: number }> =>
+    http.get('/inbound/calls/live').then((r) => r.data),
+
+  get: (id: string): Promise<InboundCall> =>
+    http.get(`/inbound/calls/${id}`).then((r) => r.data),
+};
+
+// ── Inbound: Analytics ────────────────────────────────────────────────────────
+
+export interface InboundAnalytics {
+  summary: {
+    totalCalls:  number;
+    avgDuration: number;
+    transferRate: number;
+    liveNow:     number;
+    transferred: number;
+    completed:   number;
+    voicemail:   number;
+    noAnswer:    number;
+    failed:      number;
+  };
+  byOutcome: { outcome: string; count: number }[];
+  daily:     { date: string; count: number }[];
+  byHour:    { hour: number; count: number }[];
+}
+
+export const inboundAnalyticsApi = {
+  get: (params?: { days?: number }): Promise<InboundAnalytics> =>
+    http.get('/inbound/analytics', { params }).then((r) => r.data),
+};
+
 // ── Client portal: Voice cloning ─────────────────────────────────────────────
 
 export const portalVoiceApi = {

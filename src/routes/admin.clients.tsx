@@ -273,6 +273,8 @@ function ClientsPage() {
               <Row label="Campaigns" value={String(selected._count?.campaigns ?? "—")} />
               <Row label="Calls" value={String(selected._count?.calls ?? "—")} />
               <Row label="Leads" value={String(selected._count?.leads ?? "—")} />
+              <Row label="Inbound calls" value={String(selected._count?.inboundCalls ?? "—")} />
+              <Row label="Receptionists" value={String(selected._count?.inboundAssistants ?? "—")} />
             </dl>
 
             <div className="grid grid-cols-2 gap-2 pt-2">

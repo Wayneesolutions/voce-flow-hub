@@ -8,6 +8,7 @@ import { revenueByMonth } from "@/lib/mock";
 import {
   Users,
   PhoneCall,
+  PhoneIncoming,
   Timer,
   CalendarCheck2,
   DollarSign,
@@ -90,7 +91,7 @@ function AdminDashboard() {
         </>
       }
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
         <StatCard
           label="Active clients"
           value={String(stats?.activeClients ?? tenants.length)}
@@ -120,6 +121,12 @@ function AdminDashboard() {
           value={`$${(stats?.revenueToday ?? 0).toFixed(2)}`}
           hint="today"
           icon={<DollarSign className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Inbound today"
+          value={String(stats?.inboundCallsToday ?? 0)}
+          hint="today"
+          icon={<PhoneIncoming className="h-4 w-4" />}
         />
         <StatCard
           label="Gross profit MTD"

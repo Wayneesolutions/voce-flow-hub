@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { campaignsApi, scriptsApi, leadsApi } from "@/lib/api";
 import type { Campaign, Lead, Script } from "@/lib/types";
@@ -24,11 +24,13 @@ const TIMEZONES = [
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  ACTIVE: "bg-success/10 text-success",
-  PAUSED: "bg-warning/10 text-warning",
+  DRAFT:     "bg-muted text-muted-foreground",
+  ACTIVE:    "bg-success/10 text-success",
+  PAUSED:    "bg-warning/10 text-warning",
   COMPLETED: "bg-muted text-muted-foreground",
 };
+
+const CALLS_PER_MINUTE = 2;
 
 const defaultForm = {
   name: "",
@@ -41,14 +43,99 @@ const defaultForm = {
   retryAfterHours: "24",
 };
 
+function formatEta(remainingLeads: number): string {
+  if (remainingLeads <= 0) return "Done";
+  const mins = Math.ceil(remainingLeads / CALLS_PER_MINUTE);
+  if (mins < 60) return `~${mins}min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `~${h}h ${m}min` : `~${h}h`;
+}
+
+function CampaignProgress({ c }: { c: Campaign }) {
+  const totalLeads  = c._count?.leads ?? 0;
+  const totalCalls  = c._count?.calls ?? 0;
+  const pct         = totalLeads > 0 ? Math.min(100, Math.round((totalCalls / totalLeads) * 100)) : 0;
+  const remaining   = Math.max(0, totalLeads - totalCalls);
+  const outcomes    = c.outcomeCounts ?? {};
+  const booked      = outcomes.BOOKED        ?? 0;
+  const voicemail   = outcomes.VOICEMAIL     ?? 0;
+  const noAnswer    = outcomes.NO_ANSWER     ?? 0;
+  const notInt      = outcomes.NOT_INTERESTED ?? 0;
+  const callback    = outcomes.CALLBACK      ?? 0;
+
+  return (
+    <td colSpan={7} className="px-5 pb-3 pt-0">
+      <div className="rounded-md border border-border/60 bg-muted/20 px-4 py-3 space-y-2.5">
+        {/* Progress bar */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-xs tabular-nums text-muted-foreground w-24 text-right shrink-0">
+            {totalCalls} / {totalLeads} leads
+          </span>
+          <span className="text-xs font-semibold tabular-nums w-10 text-right shrink-0">
+            {pct}%
+          </span>
+        </div>
+
+        {/* Outcome pills + ETA */}
+        <div className="flex items-center flex-wrap gap-2">
+          {booked > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success text-xs px-2 py-0.5 font-medium">
+              Booked: {booked}
+            </span>
+          )}
+          {callback > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 text-accent-foreground text-xs px-2 py-0.5 font-medium">
+              Callback: {callback}
+            </span>
+          )}
+          {voicemail > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
+              Voicemail: {voicemail}
+            </span>
+          )}
+          {noAnswer > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
+              No Answer: {noAnswer}
+            </span>
+          )}
+          {notInt > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive text-xs px-2 py-0.5 font-medium">
+              Not Interested: {notInt}
+            </span>
+          )}
+          {totalCalls === 0 && (
+            <span className="text-xs text-muted-foreground">No calls yet</span>
+          )}
+
+          {c.status === "ACTIVE" && remaining > 0 && (
+            <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+              ETA: {formatEta(remaining)} · {CALLS_PER_MINUTE} calls/min
+            </span>
+          )}
+          {c.status === "PAUSED" && (
+            <span className="ml-auto text-xs text-warning">Paused — resume to continue</span>
+          )}
+        </div>
+      </div>
+    </td>
+  );
+}
+
 function Campaigns() {
   const qc = useQueryClient();
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState(defaultForm);
-  const [editing, setEditing] = useState<Campaign | null>(null);
-  const [editForm, setEditForm] = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
+  const [creating, setCreating]             = useState(false);
+  const [form, setForm]                     = useState(defaultForm);
+  const [editing, setEditing]               = useState<Campaign | null>(null);
+  const [editForm, setEditForm]             = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
-  const [leadSearch, setLeadSearch] = useState("");
+  const [leadSearch, setLeadSearch]         = useState("");
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -67,11 +154,11 @@ function Campaigns() {
     enabled: creating,
   });
 
-  const liveScripts = scripts.filter((s) => s.status === "LIVE" || s.status === "APPROVED");
+  const liveScripts    = scripts.filter((s) => s.status === "LIVE" || s.status === "APPROVED");
   const availableLeads = unassignedLeads?.leads ?? [];
 
-  const q = leadSearch.trim().toLowerCase();
-  const filteredLeads = q
+  const q               = leadSearch.trim().toLowerCase();
+  const filteredLeads   = q
     ? availableLeads.filter(
         (l) =>
           l.name.toLowerCase().includes(q) ||
@@ -82,7 +169,8 @@ function Campaigns() {
 
   const allFilteredSelected =
     filteredLeads.length > 0 && filteredLeads.every((l) => selectedLeadIds.has(l.id));
-  const someFilteredSelected = filteredLeads.some((l) => selectedLeadIds.has(l.id)) && !allFilteredSelected;
+  const someFilteredSelected =
+    filteredLeads.some((l) => selectedLeadIds.has(l.id)) && !allFilteredSelected;
 
   function toggleLead(id: string) {
     setSelectedLeadIds((prev) => {
@@ -118,15 +206,15 @@ function Campaigns() {
   const createMut = useMutation({
     mutationFn: () =>
       campaignsApi.create({
-        name: form.name,
-        scriptId: form.scriptId,
-        callFromHour: parseInt(form.callFromHour),
-        callToHour: parseInt(form.callToHour),
-        timezone: form.timezone,
-        callDays: form.callDays,
-        maxAttempts: parseInt(form.maxAttempts),
-        retryAfterHours: parseInt(form.retryAfterHours),
-        leadIds: selectedLeadIds.size > 0 ? Array.from(selectedLeadIds) : undefined,
+        name:             form.name,
+        scriptId:         form.scriptId,
+        callFromHour:     parseInt(form.callFromHour),
+        callToHour:       parseInt(form.callToHour),
+        timezone:         form.timezone,
+        callDays:         form.callDays,
+        maxAttempts:      parseInt(form.maxAttempts),
+        retryAfterHours:  parseInt(form.retryAfterHours),
+        leadIds:          selectedLeadIds.size > 0 ? Array.from(selectedLeadIds) : undefined,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
@@ -170,19 +258,20 @@ function Campaigns() {
 
   const openEdit = (c: Campaign) => {
     setEditForm({
-      callFromHour: String(c.callFromHour),
-      callToHour: String(c.callToHour),
-      timezone: c.timezone,
-      callDays: c.callDays,
-      maxAttempts: String(c.maxAttempts),
+      callFromHour:    String(c.callFromHour),
+      callToHour:      String(c.callToHour),
+      timezone:        c.timezone,
+      callDays:        c.callDays,
+      maxAttempts:     String(c.maxAttempts),
       retryAfterHours: String(c.retryAfterHours),
     });
     setEditing(c);
   };
 
   const ef = (key: keyof typeof editForm, val: string) => setEditForm((p) => ({ ...p, [key]: val }));
+  const f  = (key: keyof typeof form, val: string | boolean) => setForm((p) => ({ ...p, [key]: val }));
 
-  const f = (key: keyof typeof form, val: string | boolean) => setForm((p) => ({ ...p, [key]: val }));
+  const showProgress = (c: Campaign) => c.status === "ACTIVE" || c.status === "PAUSED";
 
   return (
     <DashboardShell
@@ -222,8 +311,7 @@ function Campaigns() {
             <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="text-left font-medium px-5 py-2.5">Campaign</th>
-                <th className="text-left font-medium px-3 py-2.5">Script</th>
-                <th className="text-left font-medium px-3 py-2.5">Hours</th>
+                <th className="text-left font-medium px-3 py-2.5">Schedule</th>
                 <th className="text-right font-medium px-3 py-2.5">Leads</th>
                 <th className="text-right font-medium px-3 py-2.5">Calls</th>
                 <th className="text-left font-medium px-3 py-2.5">Status</th>
@@ -232,66 +320,79 @@ function Campaigns() {
             </thead>
             <tbody>
               {campaigns.map((c) => (
-                <tr key={c.id} className="border-t border-border hover:bg-muted/20">
-                  <td className="px-5 py-3 font-medium">{c.name}</td>
-                  <td className="px-3 py-3 text-muted-foreground text-xs">
-                    {c.script?.agentName ?? "—"}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground text-xs tabular-nums">
-                    {c.callFromHour}:00 – {c.callToHour}:00
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
-                    {c._count?.leads ?? "—"}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
-                    {c._count?.calls ?? "—"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <span
-                      className={`inline-flex rounded-full text-xs px-2 py-0.5 font-medium ${STATUS_STYLES[c.status] ?? "bg-muted text-muted-foreground"}`}
-                    >
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <div className="inline-flex items-center gap-2">
-                      <Link
-                        to="/portal/leads"
-                        search={{ campaignId: c.id, campaignName: c.name }}
-                        className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
-                        title="View leads"
+                <Fragment key={c.id}>
+                  {/* Main row */}
+                  <tr className={`border-t border-border hover:bg-muted/20 ${showProgress(c) ? "" : ""}`}>
+                    <td className="px-5 py-3">
+                      <div className="font-medium">{c.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {c.script?.agentName ?? "—"}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground text-xs tabular-nums">
+                      {c.callFromHour}:00 – {c.callToHour}:00
+                      <div className="mt-0.5">{c.callDays.replace(/,/g, " · ")}</div>
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {c._count?.leads ?? "—"}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {c._count?.calls ?? "—"}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex rounded-full text-xs px-2 py-0.5 font-medium ${STATUS_STYLES[c.status] ?? "bg-muted text-muted-foreground"}`}
                       >
-                        <List className="h-3.5 w-3.5" />
-                      </Link>
-                      <button
-                        onClick={() => openEdit(c)}
-                        className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
-                        title="Edit schedule"
-                      >
-                        <Settings2 className="h-3.5 w-3.5" />
-                      </button>
-                      {c.status === "ACTIVE" ? (
-                        <button
-                          onClick={() => pauseMut.mutate(c.id)}
-                          disabled={pauseMut.isPending}
-                          className="h-8 px-3 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center gap-1 disabled:opacity-60"
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <Link
+                          to="/portal/leads"
+                          search={{ campaignId: c.id, campaignName: c.name }}
+                          className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
+                          title="View leads"
                         >
-                          <Pause className="h-3.5 w-3.5" />
-                          Pause
-                        </button>
-                      ) : c.status !== "COMPLETED" ? (
+                          <List className="h-3.5 w-3.5" />
+                        </Link>
                         <button
-                          onClick={() => startMut.mutate(c.id)}
-                          disabled={startMut.isPending}
-                          className="h-8 px-3 rounded-md bg-success text-white text-xs hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-60"
+                          onClick={() => openEdit(c)}
+                          className="h-8 w-8 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center justify-center"
+                          title="Edit schedule"
                         >
-                          <Play className="h-3.5 w-3.5" />
-                          Start
+                          <Settings2 className="h-3.5 w-3.5" />
                         </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
+                        {c.status === "ACTIVE" ? (
+                          <button
+                            onClick={() => pauseMut.mutate(c.id)}
+                            disabled={pauseMut.isPending}
+                            className="h-8 px-3 rounded-md border border-border text-xs hover:bg-secondary inline-flex items-center gap-1 disabled:opacity-60"
+                          >
+                            <Pause className="h-3.5 w-3.5" />
+                            Pause
+                          </button>
+                        ) : c.status !== "COMPLETED" ? (
+                          <button
+                            onClick={() => startMut.mutate(c.id)}
+                            disabled={startMut.isPending}
+                            className="h-8 px-3 rounded-md bg-success text-white text-xs hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-60"
+                          >
+                            <Play className="h-3.5 w-3.5" />
+                            Start
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Progress row — only for ACTIVE or PAUSED */}
+                  {showProgress(c) && (
+                    <tr className="border-t border-border/40 bg-muted/5">
+                      <CampaignProgress c={c} />
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -388,11 +489,11 @@ function Campaigns() {
               </button>
               <button
                 onClick={() => updateMut.mutate({
-                  callFromHour: parseInt(editForm.callFromHour),
-                  callToHour: parseInt(editForm.callToHour),
-                  timezone: editForm.timezone,
-                  callDays: editForm.callDays,
-                  maxAttempts: parseInt(editForm.maxAttempts),
+                  callFromHour:    parseInt(editForm.callFromHour),
+                  callToHour:      parseInt(editForm.callToHour),
+                  timezone:        editForm.timezone,
+                  callDays:        editForm.callDays,
+                  maxAttempts:     parseInt(editForm.maxAttempts),
                   retryAfterHours: parseInt(editForm.retryAfterHours),
                 })}
                 disabled={updateMut.isPending}
@@ -446,6 +547,7 @@ function Campaigns() {
                   </select>
                 )}
               </div>
+
               {/* Leads assignment */}
               <div className="sm:col-span-2">
                 <div className="flex items-center justify-between mb-1.5">
@@ -468,7 +570,6 @@ function Campaigns() {
                   </div>
                 ) : (
                   <div className="rounded-md border border-border overflow-hidden">
-                    {/* Search */}
                     <div className="relative border-b border-border">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <input
@@ -478,8 +579,6 @@ function Campaigns() {
                         className="w-full h-9 bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent/40"
                       />
                     </div>
-
-                    {/* Select all header */}
                     <button
                       type="button"
                       onClick={toggleAll}
@@ -495,8 +594,6 @@ function Campaigns() {
                       {allFilteredSelected ? "Deselect all" : "Select all"}
                       {q && <span className="ml-auto text-xs text-muted-foreground font-normal">{filteredLeads.length} match{filteredLeads.length !== 1 ? "es" : ""}</span>}
                     </button>
-
-                    {/* Lead rows */}
                     <div className="max-h-52 overflow-y-auto divide-y divide-border">
                       {filteredLeads.length === 0 && (
                         <div className="px-4 py-4 text-sm text-muted-foreground text-center">
@@ -535,9 +632,7 @@ function Campaigns() {
               <div>
                 <label className="text-sm font-medium">Call from (hour)</label>
                 <input
-                  type="number"
-                  min={0}
-                  max={23}
+                  type="number" min={0} max={23}
                   value={form.callFromHour}
                   onChange={(e) => f("callFromHour", e.target.value)}
                   className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -546,9 +641,7 @@ function Campaigns() {
               <div>
                 <label className="text-sm font-medium">Call to (hour)</label>
                 <input
-                  type="number"
-                  min={0}
-                  max={23}
+                  type="number" min={0} max={23}
                   value={form.callToHour}
                   onChange={(e) => f("callToHour", e.target.value)}
                   className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -589,15 +682,13 @@ function Campaigns() {
                   })}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Scheduled callbacks (lead requested a specific time) always fire regardless of these days.
+                  Scheduled callbacks always fire regardless of these days.
                 </p>
               </div>
               <div>
                 <label className="text-sm font-medium">Max attempts per lead</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={10}
+                  type="number" min={1} max={10}
                   value={form.maxAttempts}
                   onChange={(e) => f("maxAttempts", e.target.value)}
                   className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -606,14 +697,22 @@ function Campaigns() {
               <div>
                 <label className="text-sm font-medium">Retry after (hours)</label>
                 <input
-                  type="number"
-                  min={1}
+                  type="number" min={1}
                   value={form.retryAfterHours}
                   onChange={(e) => f("retryAfterHours", e.target.value)}
                   className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
             </div>
+
+            {/* Rate info banner */}
+            <div className="mx-5 mb-4 rounded-md bg-muted/50 border border-border px-4 py-2.5 text-xs text-muted-foreground">
+              Calls will be placed at <span className="font-semibold text-foreground">{CALLS_PER_MINUTE} calls/minute</span>.
+              {selectedLeadIds.size > 0 && (
+                <> &nbsp;{selectedLeadIds.size} leads → ETA <span className="font-semibold text-foreground">{formatEta(selectedLeadIds.size)}</span>.</>
+              )}
+            </div>
+
             {createMut.isError && (
               <div className="mx-5 mb-4 text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
                 {(createMut.error as Error)?.message ?? "Failed to create campaign"}

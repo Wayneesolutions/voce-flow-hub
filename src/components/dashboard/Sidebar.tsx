@@ -9,9 +9,19 @@ export interface NavItem {
   icon: ReactNode;
 }
 
+export interface NavSection {
+  section: string;
+}
+
+export type NavEntry = NavItem | NavSection;
+
+function isSection(entry: NavEntry): entry is NavSection {
+  return "section" in entry;
+}
+
 interface Props {
   brand: { name: string; subtitle?: string; mark: ReactNode; markBg?: string };
-  items: NavItem[];
+  items: NavEntry[];
   footer?: ReactNode;
 }
 
@@ -21,7 +31,18 @@ export function DashboardSidebar({ brand, items, footer }: Props) {
 
   const Nav = (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-      {items.map((item) => {
+      {items.map((entry, i) => {
+        if (isSection(entry)) {
+          return (
+            <div
+              key={`section-${i}`}
+              className="px-3 pt-4 pb-1 text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/50 select-none"
+            >
+              {entry.section}
+            </div>
+          );
+        }
+        const item = entry;
         const active =
           pathname === item.to || (item.to !== "/" && pathname.startsWith(item.to + "/"));
         return (
