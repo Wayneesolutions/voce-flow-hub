@@ -5,8 +5,11 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import {
   inboundAssistantApi,
   inboundPhoneApi,
+  tenantApi,
+  voicesApi,
   type InboundAssistant,
   type InboundAssistantInput,
+  type ElevenLabsVoice,
 } from "@/lib/api";
 import {
   Bot, Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
@@ -61,7 +64,9 @@ function WizardModal({
   onSaved: () => void;
 }) {
   const qc = useQueryClient();
-  const { data: phones = [] } = useQuery({ queryKey: ["inbound-numbers"], queryFn: inboundPhoneApi.list });
+  const { data: phones = [] }  = useQuery({ queryKey: ["inbound-numbers"],  queryFn: inboundPhoneApi.list });
+  const { data: tenant }       = useQuery({ queryKey: ["tenant-me"],         queryFn: tenantApi.me });
+  const { data: voices = [] }  = useQuery({ queryKey: ["voices"],            queryFn: voicesApi.list });
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<InboundAssistantInput & { businessHours: Record<string, string> }>(
@@ -183,9 +188,17 @@ function WizardModal({
                   ))}
                 </div>
               </Field>
-              <Field label="ElevenLabs Voice ID (optional)">
-                <input value={form.voiceId || ""} onChange={(e) => set("voiceId", e.target.value)} placeholder="e.g. EXAVITQu4vr4xnSDxMaL" className={INPUT} />
-              </Field>
+              <VoicePicker
+                value={form.voiceId || ""}
+                onChange={(id) => set("voiceId", id)}
+                gender={form.agentGender}
+                clonedVoice={
+                  tenant?.clonedVoiceId
+                    ? { id: tenant.clonedVoiceId, name: tenant.clonedVoiceName || "My Cloned Voice" }
+                    : null
+                }
+                voices={voices}
+              />
               <div className="rounded-md bg-muted/40 border border-border px-4 py-3">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Preview greeting</p>
                 <p className="text-sm italic">
@@ -300,6 +313,87 @@ function WizardModal({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Voice Picker ──────────────────────────────────────────────────────────────
+
+const CUSTOM_ID = "__custom__";
+
+function VoicePicker({
+  value, onChange, gender, clonedVoice, voices,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  gender: string;
+  clonedVoice: { id: string; name: string } | null;
+  voices: ElevenLabsVoice[];
+}) {
+  // Decide whether current value is a "known" option or a custom typed ID
+  const knownIds = new Set([
+    "",
+    ...(clonedVoice ? [clonedVoice.id] : []),
+    ...voices.map((v) => v.id),
+  ]);
+  const isCustom = value !== "" && !knownIds.has(value);
+  const selectValue = isCustom ? CUSTOM_ID : value;
+
+  const presets = voices.filter(
+    (v) => !v.gender || v.gender.toLowerCase().includes(gender.toLowerCase())
+  );
+
+  const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === CUSTOM_ID) {
+      onChange(""); // will show text input; user types their own
+    } else {
+      onChange(val);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-muted-foreground">Voice</label>
+      <select value={selectValue} onChange={handleSelect} className={INPUT}>
+        <option value="">Default (AI picks best voice)</option>
+
+        {clonedVoice && (
+          <option value={clonedVoice.id}>
+            ⭐ My Cloned Voice — {clonedVoice.name}
+          </option>
+        )}
+
+        {presets.length > 0 && (
+          <optgroup label={`Preset ${gender} voices`}>
+            {presets.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}{v.accent ? ` · ${v.accent}` : ""}
+              </option>
+            ))}
+          </optgroup>
+        )}
+
+        <option value={CUSTOM_ID}>Custom voice ID…</option>
+      </select>
+
+      {(selectValue === CUSTOM_ID || isCustom) && (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Paste ElevenLabs voice ID"
+          className={INPUT}
+        />
+      )}
+
+      {value && value !== "" && !isCustom && voices.find((v) => v.id === value)?.previewUrl && (
+        <audio
+          key={value}
+          src={voices.find((v) => v.id === value)!.previewUrl!}
+          controls
+          className="w-full h-8 mt-1"
+        />
+      )}
     </div>
   );
 }

@@ -16,6 +16,8 @@ import {
   Clock,
   Search,
   Mic,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,15 +51,18 @@ const defaultForm = {
   language: "en",
 };
 
+type ModalMode = "create" | "edit" | null;
+
 function Scripts() {
   const qc = useQueryClient();
   const faqRef = useRef<HTMLInputElement>(null);
-  const [creating, setCreating] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [form, setForm] = useState(defaultForm);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [faqScriptId, setFaqScriptId] = useState<string | null>(null);
   const [uploadingFaq, setUploadingFaq] = useState(false);
   const [voiceSearch, setVoiceSearch] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: scripts = [], isLoading } = useQuery<Script[]>({
     queryKey: ["scripts"],
@@ -95,7 +100,7 @@ function Scripts() {
       }),
     onSuccess: (script) => {
       qc.invalidateQueries({ queryKey: ["scripts"] });
-      setCreating(false);
+      setModalMode(null);
       setForm(defaultForm);
       setSelectedId(script.id);
       setFaqScriptId(script.id);
@@ -104,7 +109,73 @@ function Scripts() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const updateMut = useMutation({
+    mutationFn: () =>
+      scriptsApi.update(selected!.id, {
+        name: form.name,
+        agentName: form.agentName,
+        agentGender: form.agentGender || "female",
+        companyInfo: form.companyInfo,
+        servicesInfo: form.servicesInfo,
+        goalText: form.goalText,
+        objections: form.objections || undefined,
+        voiceId: form.voiceId || undefined,
+        language: form.language || "en",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scripts"] });
+      setModalMode(null);
+      setForm(defaultForm);
+      toast.success("Script updated and re-submitted for review");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => scriptsApi.remove(selected!.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scripts"] });
+      setSelectedId(null);
+      setConfirmDelete(false);
+      toast.success("Script deleted");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+      setConfirmDelete(false);
+    },
+  });
+
   const f = (key: keyof typeof form, val: string) => setForm((p) => ({ ...p, [key]: val }));
+
+  const openCreate = () => {
+    setForm(defaultForm);
+    setVoiceSearch("");
+    setModalMode("create");
+  };
+
+  const openEdit = () => {
+    if (!selected) return;
+    setForm({
+      name: selected.name,
+      agentName: selected.agentName,
+      agentGender: selected.agentGender ?? "female",
+      companyInfo: selected.companyInfo,
+      servicesInfo: selected.servicesInfo,
+      goalText: selected.goalText,
+      objections: selected.objections ?? "",
+      voiceId: selected.voiceId ?? "",
+      language: selected.language ?? "en",
+    });
+    setVoiceSearch("");
+    setModalMode("edit");
+  };
+
+  const closeModal = () => {
+    setModalMode(null);
+    setForm(defaultForm);
+    createMut.reset();
+    updateMut.reset();
+  };
 
   const handleFaqUpload = async (e: React.ChangeEvent<HTMLInputElement>, scriptId: string) => {
     const file = e.target.files?.[0];
@@ -122,6 +193,11 @@ function Scripts() {
     }
   };
 
+  const canEdit = selected && selected.status !== "LIVE";
+  const canDelete = selected && (selected.status === "PENDING_REVIEW" || selected.status === "REJECTED");
+
+  const activeMut = modalMode === "edit" ? updateMut : createMut;
+
   return (
     <DashboardShell
       sidebar={null}
@@ -129,7 +205,7 @@ function Scripts() {
       subtitle="Tell the AI what to say. We review before going live."
       actions={
         <button
-          onClick={() => setCreating(true)}
+          onClick={openCreate}
           className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -149,7 +225,7 @@ function Scripts() {
             Submit a script and we'll review it before going live.
           </div>
           <button
-            onClick={() => setCreating(true)}
+            onClick={openCreate}
             className="mt-4 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
           >
             Submit first script
@@ -164,7 +240,7 @@ function Scripts() {
               return (
                 <button
                   key={s.id}
-                  onClick={() => setSelectedId(s.id)}
+                  onClick={() => { setSelectedId(s.id); setConfirmDelete(false); }}
                   className={`w-full text-left p-4 transition-colors ${
                     selected?.id === s.id
                       ? "bg-accent/5 border-l-2 border-l-accent"
@@ -190,26 +266,69 @@ function Scripts() {
 
           {selected && (
             <main className="rounded-lg border border-border bg-card">
-              <div className="p-5 border-b border-border flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">{selected.name}</h2>
+              <div className="p-5 border-b border-border flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold truncate">{selected.name}</h2>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     Agent: {selected.agentName}
                   </div>
                 </div>
-                {(() => {
-                  const cfg = STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.PENDING_REVIEW;
-                  const Icon = cfg.Icon;
-                  return (
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.cls}`}
+                <div className="flex items-center gap-2 shrink-0">
+                  {(() => {
+                    const cfg = STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.PENDING_REVIEW;
+                    const Icon = cfg.Icon;
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.cls}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {cfg.label}
+                      </span>
+                    );
+                  })()}
+                  {canEdit && (
+                    <button
+                      onClick={openEdit}
+                      className="h-8 px-3 inline-flex items-center gap-1.5 rounded-md border border-border text-xs font-medium hover:bg-secondary transition-colors"
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      {cfg.label}
-                    </span>
-                  );
-                })()}
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="h-8 px-3 inline-flex items-center gap-1.5 rounded-md border border-destructive/40 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {confirmDelete && (
+                <div className="mx-5 mt-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 flex items-center justify-between gap-3">
+                  <p className="text-sm text-destructive font-medium">
+                    Delete this script permanently?
+                  </p>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="h-7 px-3 rounded-md border border-border text-xs hover:bg-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => deleteMut.mutate()}
+                      disabled={deleteMut.isPending}
+                      className="h-7 px-3 rounded-md bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 disabled:opacity-60"
+                    >
+                      {deleteMut.isPending ? "Deleting…" : "Yes, delete"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {selected.status === "REJECTED" && selected.reviewNote && (
                 <div className="mx-5 mt-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
@@ -285,15 +404,24 @@ function Scripts() {
         onChange={(e) => faqScriptId && handleFaqUpload(e, faqScriptId)}
       />
 
-      {creating && (
+      {modalMode !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="w-full max-w-2xl rounded-lg border border-border bg-card shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-border">
-              <div className="font-semibold">New script</div>
-              <button onClick={() => setCreating(false)} className="p-1 rounded hover:bg-secondary">
+              <div className="font-semibold">
+                {modalMode === "edit" ? "Edit script" : "New script"}
+              </div>
+              <button onClick={closeModal} className="p-1 rounded hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {modalMode === "edit" && (
+              <div className="mx-5 mt-4 rounded-md bg-warning/10 border border-warning/20 px-4 py-2.5 text-xs text-warning">
+                Saving changes will re-submit this script for review.
+              </div>
+            )}
+
             <div className="p-5 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">Script name</label>
@@ -465,31 +593,35 @@ function Scripts() {
                 )}
               </div>
             </div>
-            {createMut.isError && (
+
+            {activeMut.isError && (
               <div className="mx-5 mb-4 text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                {(createMut.error as Error)?.message ?? "Failed to submit script"}
+                {(activeMut.error as Error)?.message ?? "Something went wrong"}
               </div>
             )}
+
             <div className="p-5 border-t border-border flex justify-end gap-2">
               <button
-                onClick={() => setCreating(false)}
+                onClick={closeModal}
                 className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary"
               >
                 Cancel
               </button>
               <button
-                onClick={() => createMut.mutate()}
+                onClick={() => (modalMode === "edit" ? updateMut.mutate() : createMut.mutate())}
                 disabled={
                   !form.name ||
                   !form.agentName ||
                   !form.companyInfo ||
                   !form.servicesInfo ||
                   !form.goalText ||
-                  createMut.isPending
+                  activeMut.isPending
                 }
                 className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
               >
-                {createMut.isPending ? "Submitting…" : "Submit for review"}
+                {activeMut.isPending
+                  ? modalMode === "edit" ? "Saving…" : "Submitting…"
+                  : modalMode === "edit" ? "Save changes" : "Submit for review"}
               </button>
             </div>
           </div>

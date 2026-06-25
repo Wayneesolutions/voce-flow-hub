@@ -390,6 +390,22 @@ export const scriptsApi = {
   }): Promise<Script> =>
     http.post("/scripts", data).then((r) => r.data),
 
+  update: (scriptId: string, data: {
+    name?: string;
+    agentName?: string;
+    agentGender?: string;
+    companyInfo?: string;
+    servicesInfo?: string;
+    goalText?: string;
+    objections?: string;
+    voiceId?: string;
+    language?: string;
+  }): Promise<Script> =>
+    http.patch(`/scripts/${scriptId}`, data).then((r) => r.data),
+
+  remove: (scriptId: string): Promise<{ message: string }> =>
+    http.delete(`/scripts/${scriptId}`).then((r) => r.data),
+
   uploadFaq: (scriptId: string, file: File): Promise<{ message: string }> => {
     const form = new FormData();
     form.append("file", file);
