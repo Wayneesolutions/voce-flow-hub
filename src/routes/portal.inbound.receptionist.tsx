@@ -9,11 +9,12 @@ import {
   voicesApi,
   type InboundAssistant,
   type InboundAssistantInput,
+  type InboundPhoneNumber,
   type ElevenLabsVoice,
 } from "@/lib/api";
 import {
-  Bot, Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
-  Pencil, Play, Pause, X, Phone,
+  Bot, Plus, ChevronRight, Loader2,
+  Pencil, Play, Pause, X, Phone, CheckCircle2, AlertCircle, Radio,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,35 +25,36 @@ export const Route = createFileRoute("/portal/inbound/receptionist")({
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "hi", label: "Hindi" },
-  { value: "pa", label: "Punjabi" },
+  { value: "en",       label: "English"  },
+  { value: "hi",       label: "Hindi"    },
+  { value: "pa",       label: "Punjabi"  },
   { value: "hinglish", label: "Hinglish" },
-  { value: "es", label: "Spanish" },
+  { value: "es",       label: "Spanish"  },
 ];
 const BUSINESS_TYPES = [
   "Restaurant", "Salon / Beauty", "HVAC", "Law Firm", "Real Estate", "General",
 ];
+const TOTAL_STEPS = 3;
 
 function emptyForm(): InboundAssistantInput & { businessHours: Record<string, string> } {
   return {
-    agentName: "Alex",
-    language: "en",
-    voiceId: "",
-    agentGender: "female",
-    businessName: "",
-    businessType: "",
-    servicesInfo: "",
-    faqText: "",
-    businessHours: Object.fromEntries(DAYS.map((d) => [d, "9am–6pm"])),
-    transferNumber: "",
+    agentName:       "Alex",
+    language:        "en",
+    voiceId:         "",
+    agentGender:     "female",
+    businessName:    "",
+    businessType:    "",
+    servicesInfo:    "",
+    faqText:         "",
+    businessHours:   Object.fromEntries(DAYS.map((d) => [d, "9am–6pm"])),
+    transferNumber:  "",
     transferMessage: "Please hold, connecting you now.",
-    bookingUrl: "",
+    bookingUrl:      "",
     maxCallDuration: 300,
   };
 }
 
-// ── Wizard Form ───────────────────────────────────────────────────────────────
+// ── Wizard Modal — save only, no Vapi push ────────────────────────────────────
 
 function WizardModal({
   initial,
@@ -64,9 +66,8 @@ function WizardModal({
   onSaved: () => void;
 }) {
   const qc = useQueryClient();
-  const { data: phones = [] }  = useQuery({ queryKey: ["inbound-numbers"],  queryFn: inboundPhoneApi.list });
-  const { data: tenant }       = useQuery({ queryKey: ["tenant-me"],         queryFn: tenantApi.me });
-  const { data: voices = [] }  = useQuery({ queryKey: ["voices"],            queryFn: voicesApi.list });
+  const { data: tenant }      = useQuery({ queryKey: ["tenant-me"], queryFn: tenantApi.me });
+  const { data: voices = [] } = useQuery({ queryKey: ["voices"],    queryFn: voicesApi.list });
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<InboundAssistantInput & { businessHours: Record<string, string> }>(
@@ -88,8 +89,6 @@ function WizardModal({
         }
       : emptyForm()
   );
-  const [phoneNumberId, setPhoneNumberId] = useState(initial?.phoneNumberId || "");
-  const [activateNow, setActivateNow] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const set = (k: keyof typeof form, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
@@ -100,17 +99,12 @@ function WizardModal({
     if (!form.businessName.trim()) { toast.error("Business name is required"); return; }
     setSaving(true);
     try {
-      let assistant: InboundAssistant;
       if (initial) {
-        assistant = await inboundAssistantApi.update(initial.id, form);
+        await inboundAssistantApi.update(initial.id, form);
+        toast.success("Receptionist updated");
       } else {
-        assistant = await inboundAssistantApi.create(form);
-      }
-      if (activateNow && phoneNumberId) {
-        await inboundAssistantApi.activate(assistant.id, phoneNumberId);
-        toast.success("Receptionist is LIVE! Calls to that number will be answered.");
-      } else {
-        toast.success(initial ? "Receptionist updated" : "Receptionist saved as draft");
+        await inboundAssistantApi.create(form);
+        toast.success("Receptionist saved — use Go Live to activate it");
       }
       qc.invalidateQueries({ queryKey: ["inbound-assistants"] });
       onSaved();
@@ -121,10 +115,11 @@ function WizardModal({
     }
   };
 
-  const TOTAL_STEPS = 4;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)" }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)" }}
+    >
       <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
@@ -132,10 +127,12 @@ function WizardModal({
             <h2 className="font-semibold text-base">{initial ? "Edit Receptionist" : "New AI Receptionist"}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Step {step} of {TOTAL_STEPS}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Step indicators */}
+        {/* Step bar */}
         <div className="flex gap-1 px-6 pt-3 shrink-0">
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (
             <div
@@ -149,9 +146,14 @@ function WizardModal({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {step === 1 && (
             <>
-              <h3 className="font-medium text-sm">Business Info</h3>
+              <SectionTitle>Business Info</SectionTitle>
               <Field label="Business Name *">
-                <input value={form.businessName} onChange={(e) => set("businessName", e.target.value)} placeholder="e.g. Maple Plumbing Co." className={INPUT} />
+                <input
+                  value={form.businessName}
+                  onChange={(e) => set("businessName", e.target.value)}
+                  placeholder="e.g. Maple Plumbing Co."
+                  className={INPUT}
+                />
               </Field>
               <Field label="Business Type">
                 <select value={form.businessType || ""} onChange={(e) => set("businessType", e.target.value)} className={INPUT}>
@@ -160,14 +162,20 @@ function WizardModal({
                 </select>
               </Field>
               <Field label="Services / What you offer">
-                <textarea value={form.servicesInfo || ""} onChange={(e) => set("servicesInfo", e.target.value)} rows={4} placeholder="Describe your services so the AI can answer questions…" className={TEXTAREA} />
+                <textarea
+                  value={form.servicesInfo || ""}
+                  onChange={(e) => set("servicesInfo", e.target.value)}
+                  rows={4}
+                  placeholder="Describe your services so the AI can answer questions…"
+                  className={TEXTAREA}
+                />
               </Field>
             </>
           )}
 
           {step === 2 && (
             <>
-              <h3 className="font-medium text-sm">Agent Personality</h3>
+              <SectionTitle>Agent Personality</SectionTitle>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Agent Name">
                   <input value={form.agentName} onChange={(e) => set("agentName", e.target.value)} placeholder="Alex" className={INPUT} />
@@ -202,7 +210,7 @@ function WizardModal({
               <div className="rounded-md bg-muted/40 border border-border px-4 py-3">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Preview greeting</p>
                 <p className="text-sm italic">
-                  {greetingPreview(form.agentName || "Alex", form.language, form.agentGender, form.businessName || "your business")}
+                  {greetingPreview(form.agentName || "Alex", form.language, form.businessName || "your business")}
                 </p>
               </div>
             </>
@@ -210,7 +218,7 @@ function WizardModal({
 
           {step === 3 && (
             <>
-              <h3 className="font-medium text-sm">Call Handling</h3>
+              <SectionTitle>Call Handling</SectionTitle>
               <Field label="Business Hours">
                 <div className="mt-1 space-y-2">
                   {DAYS.map((d) => (
@@ -231,7 +239,7 @@ function WizardModal({
                   value={form.faqText || ""}
                   onChange={(e) => set("faqText", e.target.value)}
                   rows={5}
-                  placeholder="Q: Do you offer emergency services?\nA: Yes, we are available 24/7 for emergencies."
+                  placeholder={"Q: Do you offer emergency services?\nA: Yes, we are available 24/7."}
                   className={TEXTAREA}
                 />
               </Field>
@@ -244,48 +252,18 @@ function WizardModal({
                 </Field>
               </div>
               <Field label="Max Call Duration (seconds)">
-                <input type="number" value={form.maxCallDuration || 300} onChange={(e) => set("maxCallDuration", parseInt(e.target.value) || 300)} className={INPUT} />
+                <input
+                  type="number"
+                  value={form.maxCallDuration || 300}
+                  onChange={(e) => set("maxCallDuration", parseInt(e.target.value) || 300)}
+                  className={INPUT}
+                />
               </Field>
-            </>
-          )}
-
-          {step === 4 && (
-            <>
-              <h3 className="font-medium text-sm">Review & Activate</h3>
-              <ReviewRow label="Business" value={form.businessName} />
-              <ReviewRow label="Type" value={form.businessType || "—"} />
-              <ReviewRow label="Agent" value={`${form.agentName} (${form.agentGender})`} />
-              <ReviewRow label="Language" value={LANGUAGES.find((l) => l.value === form.language)?.label || form.language} />
-              <ReviewRow label="Transfer" value={form.transferNumber || "Disabled"} />
-              <ReviewRow label="Booking" value={form.bookingUrl || "Disabled"} />
-              <ReviewRow label="Max duration" value={`${form.maxCallDuration}s`} />
-
-              <Field label="Assign Phone Number">
-                <select value={phoneNumberId} onChange={(e) => setPhoneNumberId(e.target.value)} className={INPUT}>
-                  <option value="">Select a number…</option>
-                  {phones.map((p) => (
-                    <option key={p.id} value={p.id}>{p.phoneNumber} ({p.country})</option>
-                  ))}
-                </select>
-                {phones.length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">No phone numbers yet — go to Phone Numbers to add one.</p>
-                )}
-              </Field>
-
-              <div className="flex gap-3 mt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={activateNow} onChange={(e) => setActivateNow(e.target.checked)} className="accent-primary" />
-                  <span className="text-sm">Activate immediately (go live now)</span>
-                </label>
-              </div>
-              {activateNow && !phoneNumberId && (
-                <p className="text-xs text-warning">Select a phone number to activate.</p>
-              )}
             </>
           )}
         </div>
 
-        {/* Footer nav */}
+        {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-border shrink-0">
           <button
             onClick={() => setStep((s) => Math.max(1, s - 1))}
@@ -305,10 +283,12 @@ function WizardModal({
           ) : (
             <button
               onClick={handleSave}
-              disabled={saving || (activateNow && !phoneNumberId)}
+              disabled={saving}
               className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 disabled:opacity-60"
             >
-              {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : activateNow ? <><Play className="h-4 w-4" /> Activate Now</> : "Save as Draft"}
+              {saving
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+                : initial ? "Save Changes" : "Save as Draft"}
             </button>
           )}
         </div>
@@ -317,97 +297,35 @@ function WizardModal({
   );
 }
 
-// ── Voice Picker ──────────────────────────────────────────────────────────────
-
-const CUSTOM_ID = "__custom__";
-
-function VoicePicker({
-  value, onChange, gender, clonedVoice, voices,
-}: {
-  value: string;
-  onChange: (id: string) => void;
-  gender: string;
-  clonedVoice: { id: string; name: string } | null;
-  voices: ElevenLabsVoice[];
-}) {
-  // Decide whether current value is a "known" option or a custom typed ID
-  const knownIds = new Set([
-    "",
-    ...(clonedVoice ? [clonedVoice.id] : []),
-    ...voices.map((v) => v.id),
-  ]);
-  const isCustom = value !== "" && !knownIds.has(value);
-  const selectValue = isCustom ? CUSTOM_ID : value;
-
-  const presets = voices.filter(
-    (v) => !v.gender || v.gender.toLowerCase().includes(gender.toLowerCase())
-  );
-
-  const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    if (val === CUSTOM_ID) {
-      onChange(""); // will show text input; user types their own
-    } else {
-      onChange(val);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-muted-foreground">Voice</label>
-      <select value={selectValue} onChange={handleSelect} className={INPUT}>
-        <option value="">Default (AI picks best voice)</option>
-
-        {clonedVoice && (
-          <option value={clonedVoice.id}>
-            ⭐ My Cloned Voice — {clonedVoice.name}
-          </option>
-        )}
-
-        {presets.length > 0 && (
-          <optgroup label={`Preset ${gender} voices`}>
-            {presets.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}{v.accent ? ` · ${v.accent}` : ""}
-              </option>
-            ))}
-          </optgroup>
-        )}
-
-        <option value={CUSTOM_ID}>Custom voice ID…</option>
-      </select>
-
-      {(selectValue === CUSTOM_ID || isCustom) && (
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Paste ElevenLabs voice ID"
-          className={INPUT}
-        />
-      )}
-
-      {value && value !== "" && !isCustom && voices.find((v) => v.id === value)?.previewUrl && (
-        <audio
-          key={value}
-          src={voices.find((v) => v.id === value)!.previewUrl!}
-          controls
-          className="w-full h-8 mt-1"
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Main list page ─────────────────────────────────────────────────────────────
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 function ReceptionistPage() {
   const qc = useQueryClient();
-  const [showWizard, setShowWizard] = useState(false);
-  const [editing, setEditing] = useState<InboundAssistant | undefined>();
+  const [showWizard, setShowWizard]   = useState(false);
+  const [editing, setEditing]         = useState<InboundAssistant | undefined>();
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [activatePhoneId, setActivatePhoneId] = useState("");
 
   const { data: assistants = [], isLoading } = useQuery({
     queryKey: ["inbound-assistants"],
     queryFn:  inboundAssistantApi.list,
+  });
+
+  const { data: phones = [] } = useQuery({
+    queryKey: ["inbound-numbers"],
+    queryFn:  inboundPhoneApi.list,
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: ({ id, phoneNumberId }: { id: string; phoneNumberId: string }) =>
+      inboundAssistantApi.activate(id, phoneNumberId),
+    onSuccess: () => {
+      toast.success("Receptionist is LIVE — inbound calls will now be answered automatically.");
+      qc.invalidateQueries({ queryKey: ["inbound-assistants"] });
+      setActivatingId(null);
+      setActivatePhoneId("");
+    },
+    onError: () => toast.error("Failed to activate receptionist"),
   });
 
   const deactivateMutation = useMutation({
@@ -418,6 +336,16 @@ function ReceptionistPage() {
     },
     onError: () => toast.error("Failed to pause"),
   });
+
+  const handleGoLive = (a: InboundAssistant) => {
+    setActivatingId(a.id);
+    setActivatePhoneId(a.phoneNumberId || phones[0]?.id || "");
+  };
+
+  const handleCancelActivate = () => {
+    setActivatingId(null);
+    setActivatePhoneId("");
+  };
 
   return (
     <DashboardShell
@@ -451,6 +379,14 @@ function ReceptionistPage() {
               <AssistantCard
                 key={a.id}
                 assistant={a}
+                phones={phones}
+                isActivating={activatingId === a.id}
+                activatePhoneId={activatePhoneId}
+                onPhoneChange={setActivatePhoneId}
+                onGoLive={() => handleGoLive(a)}
+                onActivate={() => activateMutation.mutate({ id: a.id, phoneNumberId: activatePhoneId })}
+                onCancelActivate={handleCancelActivate}
+                activatePending={activateMutation.isPending}
                 onEdit={() => { setEditing(a); setShowWizard(true); }}
                 onPause={() => deactivateMutation.mutate(a.id)}
                 pausing={deactivateMutation.isPending && deactivateMutation.variables === a.id}
@@ -471,63 +407,196 @@ function ReceptionistPage() {
   );
 }
 
+// ── Assistant card with inline activation ─────────────────────────────────────
+
 function AssistantCard({
-  assistant, onEdit, onPause, pausing,
+  assistant, phones,
+  isActivating, activatePhoneId, onPhoneChange,
+  onGoLive, onActivate, onCancelActivate, activatePending,
+  onEdit, onPause, pausing,
 }: {
-  assistant: InboundAssistant;
-  onEdit: () => void;
-  onPause: () => void;
-  pausing: boolean;
+  assistant:       InboundAssistant;
+  phones:          InboundPhoneNumber[];
+  isActivating:    boolean;
+  activatePhoneId: string;
+  onPhoneChange:   (id: string) => void;
+  onGoLive:        () => void;
+  onActivate:      () => void;
+  onCancelActivate: () => void;
+  activatePending: boolean;
+  onEdit:          () => void;
+  onPause:         () => void;
+  pausing:         boolean;
 }) {
-  const statusColor = {
-    active: "bg-green-500/10 text-green-600",
-    draft:  "bg-muted text-muted-foreground",
-    paused: "bg-amber-500/10 text-amber-600",
-  }[assistant.status] || "bg-muted text-muted-foreground";
+  const statusConfig = {
+    active: { label: "Live",   cls: "bg-green-500/10 text-green-600",   icon: <Radio       className="h-3 w-3 animate-pulse" /> },
+    draft:  { label: "Draft",  cls: "bg-muted text-muted-foreground",    icon: <AlertCircle className="h-3 w-3" /> },
+    paused: { label: "Paused", cls: "bg-amber-500/10 text-amber-600",    icon: <Pause       className="h-3 w-3" /> },
+  }[assistant.status as "active" | "draft" | "paused"] ?? { label: assistant.status, cls: "bg-muted text-muted-foreground", icon: null };
+
+  const isLive = assistant.status === "active";
 
   return (
-    <div className="rounded-lg border border-border bg-card px-5 py-4 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="h-10 w-10 rounded-full bg-primary/10 inline-flex items-center justify-center shrink-0">
-          <Bot className="h-5 w-5 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <div className="font-semibold text-sm truncate">{assistant.businessName}</div>
-          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-            <span>{assistant.agentName}</span>
-            <span>·</span>
-            <span>{LANGUAGES.find((l) => l.value === assistant.language)?.label || assistant.language}</span>
-            {assistant.phoneNumber && (
-              <>
-                <span>·</span>
-                <Phone className="h-3 w-3" />
-                <span className="font-mono">{assistant.phoneNumber.phoneNumber}</span>
-              </>
-            )}
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Main row */}
+      <div className="px-5 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className={`h-10 w-10 rounded-full inline-flex items-center justify-center shrink-0 ${isLive ? "bg-green-500/10" : "bg-primary/10"}`}>
+            <Bot className={`h-5 w-5 ${isLive ? "text-green-600" : "text-primary"}`} />
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm truncate">{assistant.businessName}</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+              <span>{assistant.agentName}</span>
+              <span>·</span>
+              <span>{LANGUAGES.find((l) => l.value === assistant.language)?.label ?? assistant.language}</span>
+              {assistant.phoneNumber && (
+                <>
+                  <span>·</span>
+                  <Phone className="h-3 w-3" />
+                  <span className="font-mono">{assistant.phoneNumber.phoneNumber}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
-          {assistant.status === "active" && <CheckCircle2 className="h-3 w-3" />}
-          {assistant.status === "draft"  && <AlertCircle  className="h-3 w-3" />}
-          {assistant.status === "paused" && <Pause        className="h-3 w-3" />}
-          {assistant.status.charAt(0).toUpperCase() + assistant.status.slice(1)}
-        </span>
-        <button onClick={onEdit} className="text-muted-foreground hover:text-foreground transition-colors" title="Edit">
-          <Pencil className="h-4 w-4" />
-        </button>
-        {assistant.status === "active" && (
-          <button onClick={onPause} disabled={pausing} className="text-muted-foreground hover:text-amber-600 transition-colors" title="Pause">
-            {pausing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4" />}
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.cls}`}>
+            {statusConfig.icon}
+            {statusConfig.label}
+          </span>
+
+          <button
+            onClick={onEdit}
+            className="h-8 w-8 rounded-md border border-border inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title="Edit"
+          >
+            <Pencil className="h-3.5 w-3.5" />
           </button>
-        )}
+
+          {isLive ? (
+            <button
+              onClick={onPause}
+              disabled={pausing}
+              className="h-8 px-3 rounded-md border border-border inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-amber-600 hover:border-amber-300 transition-colors disabled:opacity-60"
+            >
+              {pausing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Pause className="h-3.5 w-3.5" />}
+              Pause
+            </button>
+          ) : (
+            <button
+              onClick={onGoLive}
+              className="h-8 px-3 rounded-md bg-green-600 text-white inline-flex items-center gap-1.5 text-xs font-medium hover:bg-green-700 transition-colors"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Go Live
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Inline activation panel */}
+      {isActivating && (
+        <div className="border-t border-border bg-muted/30 px-5 py-4">
+          <p className="text-xs font-medium mb-3">
+            Select the phone number that will route calls to this receptionist
+          </p>
+          {phones.length === 0 ? (
+            <p className="text-sm text-warning">
+              No phone numbers found — go to <strong>Phone Numbers</strong> to import or buy one first.
+            </p>
+          ) : (
+            <div className="flex items-center gap-3 flex-wrap">
+              <select
+                value={activatePhoneId}
+                onChange={(e) => onPhoneChange(e.target.value)}
+                className="flex-1 min-w-48 h-9 rounded-md border border-border bg-background px-3 text-sm"
+              >
+                <option value="">Select a number…</option>
+                {phones.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.phoneNumber} ({p.country})
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={onActivate}
+                disabled={!activatePhoneId || activatePending}
+                className="h-9 px-4 rounded-md bg-green-600 text-white text-sm font-medium inline-flex items-center gap-2 hover:bg-green-700 disabled:opacity-60 transition-colors"
+              >
+                {activatePending
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Activating…</>
+                  : <><CheckCircle2 className="h-4 w-4" /> Activate Now</>}
+              </button>
+              <button
+                onClick={onCancelActivate}
+                className="h-9 px-3 rounded-md border border-border text-sm text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Voice Picker ──────────────────────────────────────────────────────────────
+
+const CUSTOM_ID = "__custom__";
+
+function VoicePicker({
+  value, onChange, gender, clonedVoice, voices,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  gender: string;
+  clonedVoice: { id: string; name: string } | null;
+  voices: ElevenLabsVoice[];
+}) {
+  const knownIds = new Set(["", ...(clonedVoice ? [clonedVoice.id] : []), ...voices.map((v) => v.id)]);
+  const isCustom   = value !== "" && !knownIds.has(value);
+  const selectValue = isCustom ? CUSTOM_ID : value;
+
+  const presets = voices.filter((v) => !v.gender || v.gender.toLowerCase().includes(gender.toLowerCase()));
+
+  const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    onChange(val === CUSTOM_ID ? "" : val);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-muted-foreground">Voice</label>
+      <select value={selectValue} onChange={handleSelect} className={INPUT}>
+        <option value="">Default (AI picks best voice)</option>
+        {clonedVoice && <option value={clonedVoice.id}>⭐ My Cloned Voice — {clonedVoice.name}</option>}
+        {presets.length > 0 && (
+          <optgroup label={`Preset ${gender} voices`}>
+            {presets.map((v) => (
+              <option key={v.id} value={v.id}>{v.name}{v.accent ? ` · ${v.accent}` : ""}</option>
+            ))}
+          </optgroup>
+        )}
+        <option value={CUSTOM_ID}>Custom voice ID…</option>
+      </select>
+      {(selectValue === CUSTOM_ID || isCustom) && (
+        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Paste ElevenLabs voice ID" className={INPUT} />
+      )}
+      {value && !isCustom && voices.find((v) => v.id === value)?.previewUrl && (
+        <audio key={value} src={voices.find((v) => v.id === value)!.previewUrl!} controls className="w-full h-8 mt-1" />
+      )}
+    </div>
+  );
+}
+
+// ── Small helpers ─────────────────────────────────────────────────────────────
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="font-medium text-sm">{children}</h3>;
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -538,16 +607,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-start py-1.5 border-b border-border/50 last:border-0">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-right max-w-xs truncate">{value}</span>
-    </div>
-  );
-}
-
-function greetingPreview(name: string, lang: string, _gender: string, business: string) {
+function greetingPreview(name: string, lang: string, business: string) {
   const openers: Record<string, string> = {
     en:       `"Thank you for calling ${business}, this is ${name}. How can I help you today?"`,
     hi:       `"Namaste! Aapka ${business} mein swagat hai. Main ${name} bol raha hoon."`,
@@ -555,7 +615,7 @@ function greetingPreview(name: string, lang: string, _gender: string, business: 
     hinglish: `"Hello! Welcome to ${business}. Main ${name} bol raha hoon."`,
     es:       `"¡Gracias por llamar a ${business}! Soy ${name}. ¿En qué le puedo ayudar?"`,
   };
-  return openers[lang] || openers.en;
+  return openers[lang] ?? openers.en;
 }
 
 const INPUT    = "w-full h-9 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
