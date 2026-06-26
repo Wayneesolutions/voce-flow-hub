@@ -35,6 +35,7 @@ function Leads() {
     errors: string[];
   } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   // Reset to page 1 whenever the campaign filter changes
   const [page, setPage] = useState(1);
   const prevCampaignId = useRef(campaignId);
@@ -62,15 +63,17 @@ function Leads() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadProgress(0);
     setUploadResult(null);
     try {
-      const result = await leadsApi.uploadCsv(file);
+      const result = await leadsApi.uploadCsv(file, undefined, setUploadProgress);
       setUploadResult(result);
       qc.invalidateQueries({ queryKey: ["leads"] });
     } catch {
       setUploadResult({ imported: 0, skipped: 0, errors: ["Upload failed — check file format"] });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -122,11 +125,33 @@ function Leads() {
             )}
           </div>
           <h3 className="mt-4 text-lg font-semibold">
-            {uploading ? "Uploading…" : "Drop your CSV or Excel file here"}
+            {uploading
+              ? uploadProgress < 100
+                ? `Uploading… ${uploadProgress}%`
+                : "Processing leads…"
+              : "Drop your CSV or Excel file here"}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            or click to browse · CSV or XLSX · Max 10,000 leads per upload
+            {uploading
+              ? uploadProgress < 100
+                ? "Transferring file to server"
+                : "Validating and importing rows — this may take a moment"
+              : "or click to browse · CSV or XLSX · Max 10,000 leads per upload"}
           </p>
+
+          {uploading && (
+            <div className="mt-4 w-full max-w-xs mx-auto space-y-1.5">
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full bg-accent transition-all duration-300 ${
+                    uploadProgress >= 100 ? "w-full animate-pulse" : ""
+                  }`}
+                  style={uploadProgress < 100 ? { width: `${uploadProgress}%` } : undefined}
+                />
+              </div>
+            </div>
+          )}
+
           <button
             className="mt-5 h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
             disabled={uploading}

@@ -85,6 +85,7 @@ export interface Script {
   agentGender?: string;
   voiceId?: string;
   language?: string;
+  maxCallDuration?: number;
   status: ScriptStatus;
   reviewNote?: string;
   isActive: boolean;

@@ -306,6 +306,15 @@ export const callStatsApi = {
 
 // ── Client portal: Leads ──────────────────────────────────────────────────────
 
+export interface LeadBatch {
+  id:         string;
+  filename:   string;
+  totalCount: number;
+  available:  number;
+  used:       number;
+  createdAt:  string;
+}
+
 export const leadsApi = {
   list: (params: {
     page?: number;
@@ -319,20 +328,50 @@ export const leadsApi = {
   uploadCsv: (
     file: File,
     campaignId?: string,
-  ): Promise<{ imported: number; skipped: number; errors: string[] }> => {
-    const form = new FormData();
-    form.append("file", file);
-    if (campaignId) form.append("campaignId", campaignId);
-    return http
-      .post("/leads/upload", form, { headers: { "Content-Type": "multipart/form-data" } })
-      .then((r) => r.data);
+    onProgress?: (pct: number) => void,
+  ): Promise<{ imported: number; skipped: number; errors: string[]; batchId?: string }> => {
+    return new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append("file", file);
+      if (campaignId) form.append("campaignId", campaignId);
+      const token = typeof window !== "undefined" ? localStorage.getItem("vfh_token") : null;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/leads/upload");
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch { reject(new Error("Invalid response")); }
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.error || "Upload failed"));
+          } catch { reject(new Error("Upload failed")); }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send(form);
+    });
   },
+
+  listBatches: (): Promise<LeadBatch[]> =>
+    http.get("/leads/batches").then((r) => r.data),
 
   optOut: (leadId: string): Promise<void> =>
     http.delete(`/leads/${leadId}`).then((r) => r.data),
 
   reset: (leadId: string): Promise<void> =>
     http.patch(`/leads/${leadId}/reset`).then((r) => r.data),
+
+  redial: (leadId: string): Promise<{ lead: Lead; queued: boolean; campaignStatus: string | null }> =>
+    http.post(`/leads/${leadId}/redial`).then((r) => r.data),
 
   unassignedCount: (): Promise<{ count: number }> =>
     http.get("/leads/unassigned-count").then((r) => r.data),
@@ -434,6 +473,8 @@ export const campaignsApi = {
     retryAfterHours?: number;
     includeAllLeads?: boolean;
     leadIds?: string[];
+    batchId?: string;
+    batchLimit?: number;
   }): Promise<Campaign> =>
     http.post("/campaigns", data).then((r) => r.data),
 
@@ -452,6 +493,20 @@ export const campaignsApi = {
 
   pause: (campaignId: string): Promise<{ message: string }> =>
     http.post(`/campaigns/${campaignId}/pause`).then((r) => r.data),
+
+  noAnswers: (campaignId: string): Promise<{
+    leads: { id: string; name: string; phone: string; company?: string | null; callAttempts: number; lastCalledAt: string | null; status: string }[];
+    maxAttempts: number;
+    retryableCount: number;
+    exhaustedCount: number;
+    total: number;
+  }> => http.get(`/campaigns/${campaignId}/no-answers`).then((r) => r.data),
+
+  retryNoAnswers: (campaignId: string, includeExhausted: boolean): Promise<{
+    reset: number;
+    queued: boolean;
+    campaignStatus: string;
+  }> => http.post(`/campaigns/${campaignId}/retry-no-answers`, { includeExhausted }).then((r) => r.data),
 };
 
 // ── Client portal: Meetings ───────────────────────────────────────────────────

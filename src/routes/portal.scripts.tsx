@@ -49,6 +49,7 @@ const defaultForm = {
   objections: "",
   voiceId: "",
   language: "en",
+  maxCallDuration: "180",
 };
 
 type ModalMode = "create" | "edit" | null;
@@ -97,6 +98,7 @@ function Scripts() {
         objections: form.objections || undefined,
         voiceId: form.voiceId || undefined,
         language: form.language || "en",
+        maxCallDuration: parseInt(form.maxCallDuration) || 180,
       }),
     onSuccess: (script) => {
       qc.invalidateQueries({ queryKey: ["scripts"] });
@@ -121,6 +123,7 @@ function Scripts() {
         objections: form.objections || undefined,
         voiceId: form.voiceId || undefined,
         language: form.language || "en",
+        maxCallDuration: parseInt(form.maxCallDuration) || 180,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scripts"] });
@@ -165,6 +168,7 @@ function Scripts() {
       objections: selected.objections ?? "",
       voiceId: selected.voiceId ?? "",
       language: selected.language ?? "en",
+      maxCallDuration: String(selected.maxCallDuration ?? 180),
     });
     setVoiceSearch("");
     setModalMode("edit");
@@ -367,6 +371,9 @@ function Scripts() {
                     {LANGUAGES.find((l) => l.code === (selected.language || "en"))?.label ?? "English"}
                   </p>
                 </ScriptSection>
+                <ScriptSection title="Max call duration">
+                  <p>{selected.maxCallDuration ?? 180}s ({Math.floor((selected.maxCallDuration ?? 180) / 60)} min)</p>
+                </ScriptSection>
                 <ScriptSection title="FAQ document">
                   {selected.faqDocument ? (
                     <div className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm">
@@ -479,6 +486,20 @@ function Scripts() {
                 </select>
                 <p className="mt-1 text-xs text-muted-foreground">
                   The AI will speak in this language and transcribe responses in it.
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Max call duration (seconds)</label>
+                <input
+                  type="number"
+                  min={60}
+                  max={600}
+                  value={form.maxCallDuration}
+                  onChange={(e) => f("maxCallDuration", e.target.value)}
+                  className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Hard cap on call length. 180 = 3 min (recommended). Max 600.
                 </p>
               </div>
               <div className="sm:col-span-2">

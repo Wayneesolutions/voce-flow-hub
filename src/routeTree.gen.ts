@@ -30,6 +30,7 @@ import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
 import { Route as PortalInboundRouteImport } from './routes/portal.inbound'
 import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
+import { Route as PortalCallbacksRouteImport } from './routes/portal.callbacks'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as AdminScriptsRouteImport } from './routes/admin.scripts'
@@ -151,6 +152,11 @@ const PortalCallsRoute = PortalCallsRouteImport.update({
   path: '/calls',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalCallbacksRoute = PortalCallbacksRouteImport.update({
+  id: '/callbacks',
+  path: '/callbacks',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalBillingRoute = PortalBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/admin/scripts': typeof AdminScriptsRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
+  '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/admin/scripts': typeof AdminScriptsRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
+  '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/admin/scripts': typeof AdminScriptsRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
+  '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/admin/scripts'
     | '/checkout/success'
     | '/portal/billing'
+    | '/portal/callbacks'
     | '/portal/calls'
     | '/portal/campaigns'
     | '/portal/inbound'
@@ -401,6 +411,7 @@ export interface FileRouteTypes {
     | '/admin/scripts'
     | '/checkout/success'
     | '/portal/billing'
+    | '/portal/callbacks'
     | '/portal/calls'
     | '/portal/campaigns'
     | '/portal/inbound'
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/admin/scripts'
     | '/checkout/success'
     | '/portal/billing'
+    | '/portal/callbacks'
     | '/portal/calls'
     | '/portal/campaigns'
     | '/portal/inbound'
@@ -619,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalCallsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/callbacks': {
+      id: '/portal/callbacks'
+      path: '/callbacks'
+      fullPath: '/portal/callbacks'
+      preLoaderRoute: typeof PortalCallbacksRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/billing': {
       id: '/portal/billing'
       path: '/billing'
@@ -775,6 +794,7 @@ const PortalInboundRouteWithChildren = PortalInboundRoute._addFileChildren(
 
 interface PortalRouteChildren {
   PortalBillingRoute: typeof PortalBillingRoute
+  PortalCallbacksRoute: typeof PortalCallbacksRoute
   PortalCallsRoute: typeof PortalCallsRoute
   PortalCampaignsRoute: typeof PortalCampaignsRoute
   PortalInboundRoute: typeof PortalInboundRouteWithChildren
@@ -789,6 +809,7 @@ interface PortalRouteChildren {
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalBillingRoute: PortalBillingRoute,
+  PortalCallbacksRoute: PortalCallbacksRoute,
   PortalCallsRoute: PortalCallsRoute,
   PortalCampaignsRoute: PortalCampaignsRoute,
   PortalInboundRoute: PortalInboundRouteWithChildren,

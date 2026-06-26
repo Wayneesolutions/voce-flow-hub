@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, Fragment } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { campaignsApi, scriptsApi, leadsApi } from "@/lib/api";
-import type { Campaign, Lead, Script } from "@/lib/types";
-import { Plus, Play, Pause, X, Loader2, Settings2, List, CheckSquare, Square, Search } from "lucide-react";
+import type { LeadBatch } from "@/lib/api";
+import type { Campaign, Script } from "@/lib/types";
+import { Plus, Play, Pause, X, Loader2, Settings2, List, PhoneOff, Phone, RotateCcw, AlertTriangle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/campaigns")({
@@ -52,21 +53,303 @@ function formatEta(remainingLeads: number): string {
   return m > 0 ? `~${h}h ${m}min` : `~${h}h`;
 }
 
-function CampaignProgress({ c }: { c: Campaign }) {
-  const totalLeads  = c._count?.leads ?? 0;
-  const totalCalls  = c._count?.calls ?? 0;
-  const pct         = totalLeads > 0 ? Math.min(100, Math.round((totalCalls / totalLeads) * 100)) : 0;
-  const remaining   = Math.max(0, totalLeads - totalCalls);
-  const outcomes    = c.outcomeCounts ?? {};
-  const booked      = outcomes.BOOKED        ?? 0;
-  const voicemail   = outcomes.VOICEMAIL     ?? 0;
-  const noAnswer    = outcomes.NO_ANSWER     ?? 0;
-  const notInt      = outcomes.NOT_INTERESTED ?? 0;
-  const callback    = outcomes.CALLBACK      ?? 0;
+function formatRelative(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// ── No Answer Modal ─────────────────────────────────────────────────────────
+
+function NoAnswerModal({ campaign, onClose }: { campaign: Campaign; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [retryResult, setRetryResult] = useState<{ reset: number; queued: boolean; campaignStatus: string } | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["campaign-no-answers", campaign.id],
+    queryFn: () => campaignsApi.noAnswers(campaign.id),
+  });
+
+  const retryMut = useMutation({
+    mutationFn: (includeExhausted: boolean) =>
+      campaignsApi.retryNoAnswers(campaign.id, includeExhausted),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign-no-answers", campaign.id] });
+      setRetryResult(result);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const leads          = data?.leads          ?? [];
+  const maxAttempts    = data?.maxAttempts    ?? campaign.maxAttempts;
+  const retryableCount = data?.retryableCount ?? 0;
+  const exhaustedCount = data?.exhaustedCount ?? 0;
+  const total          = data?.total          ?? 0;
+  const isActive       = campaign.status === "ACTIVE";
+
+  const scheduleLabel = `${campaign.callFromHour}:00 – ${campaign.callToHour}:00 · ${campaign.callDays.replace(/,/g, " · ")} · ${campaign.timezone}`;
+  const etaText       = retryResult ? formatEta(retryResult.reset) : "";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="w-full max-w-2xl rounded-lg border border-border bg-card shadow-2xl flex flex-col max-h-[85vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <div className="font-semibold flex items-center gap-2">
+              <PhoneOff className="h-4 w-4 text-warning" />
+              No Answer Leads
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">{campaign.name}</div>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-secondary">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* ── POST-RETRY CONFIRMATION SCREEN ── */}
+        {retryResult ? (
+          <>
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 py-12 text-center">
+              <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-7 w-7 text-success" />
+              </div>
+
+              <div>
+                <div className="text-xl font-semibold">
+                  {retryResult.reset} lead{retryResult.reset !== 1 ? "s" : ""} queued for retry
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {retryResult.queued
+                    ? "The AI dialer has been triggered and will start calling shortly."
+                    : "Leads have been reset. Start or resume the campaign to begin dialing."}
+                </div>
+              </div>
+
+              {/* Schedule context — the most important missing info */}
+              <div className="w-full max-w-sm rounded-lg border border-border bg-muted/30 divide-y divide-border text-sm">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="text-left">
+                    <div className="text-xs text-muted-foreground">Calling window</div>
+                    <div className="font-medium mt-0.5">
+                      {campaign.callFromHour}:00 – {campaign.callToHour}:00
+                      <span className="text-muted-foreground font-normal ml-1">({campaign.timezone})</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="text-left">
+                    <div className="text-xs text-muted-foreground">Calling days</div>
+                    <div className="font-medium mt-0.5">
+                      {campaign.callDays.replace(/,/g, " · ")}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="text-left">
+                    <div className="text-xs text-muted-foreground">Estimated time to complete</div>
+                    <div className="font-medium mt-0.5">
+                      {etaText}
+                      <span className="text-muted-foreground font-normal ml-1.5">at {CALLS_PER_MINUTE} calls/min</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!retryResult.queued && (
+                <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 rounded-md px-3 py-2">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Campaign is {retryResult.campaignStatus.toLowerCase()} — go to Campaigns and press Start to begin dialing
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-border flex justify-end">
+              <button
+                onClick={onClose}
+                className="h-9 px-6 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+              >
+                Done
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* ── NORMAL VIEW ── */}
+
+            {/* Stats bar */}
+            <div className="flex flex-wrap items-center gap-5 px-5 py-3 border-b border-border bg-muted/30 text-sm">
+              <div>
+                <span className="font-semibold tabular-nums">{total}</span>
+                <span className="text-muted-foreground ml-1.5">total</span>
+              </div>
+              <div className="w-px h-4 bg-border" />
+              <div>
+                <span className="font-semibold tabular-nums text-success">{retryableCount}</span>
+                <span className="text-muted-foreground ml-1.5">retryable</span>
+              </div>
+              <div className="w-px h-4 bg-border" />
+              <div>
+                <span className="font-semibold tabular-nums text-muted-foreground">{exhaustedCount}</span>
+                <span className="text-muted-foreground ml-1.5">exhausted (all {maxAttempts} attempts used)</span>
+              </div>
+            </div>
+
+            {/* Campaign schedule info bar */}
+            <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border bg-muted/10 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span>Calls go out during: <span className="text-foreground font-medium">{scheduleLabel}</span></span>
+              {!isActive && (
+                <span className="ml-auto flex items-center gap-1 text-warning font-medium">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Campaign {campaign.status.toLowerCase()}
+                </span>
+              )}
+            </div>
+
+            {/* Lead table */}
+            <div className="flex-1 overflow-y-auto">
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading leads…
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="p-12 text-center text-sm text-muted-foreground">
+                  No no-answer leads for this campaign
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left font-medium px-5 py-2.5">Lead</th>
+                      <th className="text-left font-medium px-3 py-2.5">Phone</th>
+                      <th className="text-center font-medium px-3 py-2.5">Attempts</th>
+                      <th className="text-right font-medium px-5 py-2.5">Last Called</th>
+                      <th className="text-center font-medium px-3 py-2.5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.map((lead) => {
+                      const isExhausted = lead.callAttempts >= maxAttempts;
+                      return (
+                        <tr key={lead.id} className="border-t border-border hover:bg-muted/20">
+                          <td className="px-5 py-3">
+                            <div className="font-medium">{lead.name}</div>
+                            {lead.company && (
+                              <div className="text-xs text-muted-foreground">{lead.company}</div>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground tabular-nums text-xs">
+                            {lead.phone}
+                          </td>
+                          <td className="px-3 py-3 text-center tabular-nums">
+                            <span className={isExhausted ? "text-destructive font-medium" : "text-foreground font-medium"}>
+                              {lead.callAttempts}
+                            </span>
+                            <span className="text-muted-foreground"> / {maxAttempts}</span>
+                          </td>
+                          <td className="px-5 py-3 text-right text-xs text-muted-foreground">
+                            {formatRelative(lead.lastCalledAt)}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                isExhausted
+                                  ? "bg-destructive/10 text-destructive"
+                                  : "bg-success/10 text-success"
+                              }`}
+                            >
+                              {isExhausted ? "Exhausted" : "Retryable"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Action bar */}
+            <div className="flex items-center justify-between gap-4 px-5 py-4 border-t border-border">
+              <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                <strong>Retryable</strong> — resets to PENDING, dials within the calling window above.<br />
+                <strong>Exhausted</strong> — resets attempt counter to 0 for a fresh start.
+              </p>
+              <div className="flex gap-2 shrink-0">
+                {exhaustedCount > 0 && (
+                  <button
+                    onClick={() => retryMut.mutate(true)}
+                    disabled={retryMut.isPending || total === 0}
+                    title="Resets attempt counter to 0 so exhausted leads get fresh tries"
+                    className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary disabled:opacity-60 inline-flex items-center gap-1.5"
+                  >
+                    {retryMut.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    )}
+                    Retry all incl. exhausted ({total})
+                  </button>
+                )}
+                <button
+                  onClick={() => retryMut.mutate(false)}
+                  disabled={retryMut.isPending || retryableCount === 0}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+                >
+                  {retryMut.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Phone className="h-3.5 w-3.5" />
+                  )}
+                  Retry retryable ({retryableCount})
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Campaign Progress Row ───────────────────────────────────────────────────
+
+function CampaignProgress({
+  c,
+  onNoAnswerClick,
+  isNoAnswerOpen,
+}: {
+  c: Campaign;
+  onNoAnswerClick: () => void;
+  isNoAnswerOpen: boolean;
+}) {
+  const totalLeads = c._count?.leads ?? 0;
+  const totalCalls = c._count?.calls ?? 0;
+  const pct        = totalLeads > 0 ? Math.min(100, Math.round((totalCalls / totalLeads) * 100)) : 0;
+  const remaining  = Math.max(0, totalLeads - totalCalls);
+  const outcomes   = c.outcomeCounts ?? {};
+  const booked     = outcomes.BOOKED         ?? 0;
+  const voicemail  = outcomes.VOICEMAIL      ?? 0;
+  const noAnswer   = outcomes.NO_ANSWER      ?? 0;
+  const notInt     = outcomes.NOT_INTERESTED ?? 0;
+  const callback   = outcomes.CALLBACK       ?? 0;
 
   return (
     <td colSpan={7} className="px-5 pb-3 pt-0">
       <div className="rounded-md border border-border/60 bg-muted/20 px-4 py-3 space-y-2.5">
+
         {/* Progress bar */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
@@ -100,11 +383,23 @@ function CampaignProgress({ c }: { c: Campaign }) {
               Voicemail: {voicemail}
             </span>
           )}
+
+          {/* Clickable No Answer pill → opens modal. Active state when modal is open */}
           {noAnswer > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
+            <button
+              onClick={onNoAnswerClick}
+              className={`inline-flex items-center gap-1.5 rounded-full text-xs px-2.5 py-0.5 font-semibold transition-colors ${
+                isNoAnswerOpen
+                  ? "bg-warning/30 text-warning border border-warning/60 ring-2 ring-warning/20"
+                  : "bg-warning/10 text-warning border border-warning/20 hover:bg-warning/20 hover:border-warning/40"
+              }`}
+              title="Click to view and retry no-answer leads"
+            >
+              <PhoneOff className="h-3 w-3" />
               No Answer: {noAnswer}
-            </span>
+            </button>
           )}
+
           {notInt > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive text-xs px-2 py-0.5 font-medium">
               Not Interested: {notInt}
@@ -128,14 +423,17 @@ function CampaignProgress({ c }: { c: Campaign }) {
   );
 }
 
+// ── Main Component ──────────────────────────────────────────────────────────
+
 function Campaigns() {
   const qc = useQueryClient();
-  const [creating, setCreating]             = useState(false);
-  const [form, setForm]                     = useState(defaultForm);
-  const [editing, setEditing]               = useState<Campaign | null>(null);
-  const [editForm, setEditForm]             = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
-  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
-  const [leadSearch, setLeadSearch]         = useState("");
+  const [creating, setCreating]                 = useState(false);
+  const [form, setForm]                         = useState(defaultForm);
+  const [editing, setEditing]                   = useState<Campaign | null>(null);
+  const [editForm, setEditForm]                 = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
+  const [selectedBatchId, setSelectedBatchId]   = useState<string | null>(null);
+  const [batchLimit, setBatchLimit]             = useState<string>("");
+  const [noAnswerCampaign, setNoAnswerCampaign] = useState<Campaign | null>(null);
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -148,57 +446,20 @@ function Campaigns() {
     queryFn: scriptsApi.list,
   });
 
-  const { data: unassignedLeads, isLoading: leadsLoading } = useQuery<{ leads: Lead[]; total: number; page: number; pages: number }>({
-    queryKey: ["leads", "unassigned-list"],
-    queryFn: () => leadsApi.list({ unassigned: true, limit: 500 }),
+  const { data: batches = [], isLoading: batchesLoading } = useQuery<LeadBatch[]>({
+    queryKey: ["leads", "batches"],
+    queryFn: leadsApi.listBatches,
     enabled: creating,
   });
 
-  const liveScripts    = scripts.filter((s) => s.status === "LIVE" || s.status === "APPROVED");
-  const availableLeads = unassignedLeads?.leads ?? [];
-
-  const q               = leadSearch.trim().toLowerCase();
-  const filteredLeads   = q
-    ? availableLeads.filter(
-        (l) =>
-          l.name.toLowerCase().includes(q) ||
-          (l.company ?? "").toLowerCase().includes(q) ||
-          l.phone.includes(q)
-      )
-    : availableLeads;
-
-  const allFilteredSelected =
-    filteredLeads.length > 0 && filteredLeads.every((l) => selectedLeadIds.has(l.id));
-  const someFilteredSelected =
-    filteredLeads.some((l) => selectedLeadIds.has(l.id)) && !allFilteredSelected;
-
-  function toggleLead(id: string) {
-    setSelectedLeadIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-
-  function toggleAll() {
-    if (allFilteredSelected) {
-      setSelectedLeadIds((prev) => {
-        const next = new Set(prev);
-        filteredLeads.forEach((l) => next.delete(l.id));
-        return next;
-      });
-    } else {
-      setSelectedLeadIds((prev) => {
-        const next = new Set(prev);
-        filteredLeads.forEach((l) => next.add(l.id));
-        return next;
-      });
-    }
-  }
+  const liveScripts      = scripts.filter((s) => s.status === "LIVE" || s.status === "APPROVED");
+  const selectedBatch    = batches.find((b) => b.id === selectedBatchId) ?? null;
+  const availableInBatch = selectedBatch?.available ?? 0;
+  const parsedLimit      = parseInt(batchLimit) || 0;
 
   function openCreate() {
-    setSelectedLeadIds(new Set());
-    setLeadSearch("");
+    setSelectedBatchId(null);
+    setBatchLimit("");
     setForm(defaultForm);
     setCreating(true);
   }
@@ -206,22 +467,25 @@ function Campaigns() {
   const createMut = useMutation({
     mutationFn: () =>
       campaignsApi.create({
-        name:             form.name,
-        scriptId:         form.scriptId,
-        callFromHour:     parseInt(form.callFromHour),
-        callToHour:       parseInt(form.callToHour),
-        timezone:         form.timezone,
-        callDays:         form.callDays,
-        maxAttempts:      parseInt(form.maxAttempts),
-        retryAfterHours:  parseInt(form.retryAfterHours),
-        leadIds:          selectedLeadIds.size > 0 ? Array.from(selectedLeadIds) : undefined,
+        name:            form.name,
+        scriptId:        form.scriptId,
+        callFromHour:    parseInt(form.callFromHour),
+        callToHour:      parseInt(form.callToHour),
+        timezone:        form.timezone,
+        callDays:        form.callDays,
+        maxAttempts:     parseInt(form.maxAttempts),
+        retryAfterHours: parseInt(form.retryAfterHours),
+        batchId:         selectedBatchId ?? undefined,
+        batchLimit:      parsedLimit > 0 ? parsedLimit : undefined,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["leads", "batches"] });
       setCreating(false);
       setForm(defaultForm);
-      setSelectedLeadIds(new Set());
+      setSelectedBatchId(null);
+      setBatchLimit("");
       toast.success("Campaign created");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -321,8 +585,7 @@ function Campaigns() {
             <tbody>
               {campaigns.map((c) => (
                 <Fragment key={c.id}>
-                  {/* Main row */}
-                  <tr className={`border-t border-border hover:bg-muted/20 ${showProgress(c) ? "" : ""}`}>
+                  <tr className="border-t border-border hover:bg-muted/20">
                     <td className="px-5 py-3">
                       <div className="font-medium">{c.name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">
@@ -386,10 +649,13 @@ function Campaigns() {
                     </td>
                   </tr>
 
-                  {/* Progress row — only for ACTIVE or PAUSED */}
                   {showProgress(c) && (
                     <tr className="border-t border-border/40 bg-muted/5">
-                      <CampaignProgress c={c} />
+                      <CampaignProgress
+                        c={c}
+                        onNoAnswerClick={() => setNoAnswerCampaign(c)}
+                        isNoAnswerOpen={noAnswerCampaign?.id === c.id}
+                      />
                     </tr>
                   )}
                 </Fragment>
@@ -397,6 +663,14 @@ function Campaigns() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* No Answer Modal */}
+      {noAnswerCampaign && (
+        <NoAnswerModal
+          campaign={noAnswerCampaign}
+          onClose={() => setNoAnswerCampaign(null)}
+        />
       )}
 
       {/* Edit schedule modal */}
@@ -512,7 +786,7 @@ function Campaigns() {
           <div className="w-full max-w-xl rounded-lg border border-border bg-card shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="font-semibold">New campaign</div>
-              <button onClick={() => { setCreating(false); setSelectedLeadIds(new Set()); }} className="p-1 rounded hover:bg-secondary">
+              <button onClick={() => { setCreating(false); setSelectedBatchId(null); setBatchLimit(""); }} className="p-1 rounded hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -548,82 +822,66 @@ function Campaigns() {
                 )}
               </div>
 
-              {/* Leads assignment */}
               <div className="sm:col-span-2">
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium">Leads to include</label>
-                  {availableLeads.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {selectedLeadIds.size} of {availableLeads.length} selected
-                    </span>
-                  )}
-                </div>
-
-                {leadsLoading ? (
-                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+                <label className="text-sm font-medium">Lead batch</label>
+                {batchesLoading ? (
+                  <div className="mt-1.5 flex items-center gap-2 rounded-md border border-border bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading leads…
+                    Loading batches…
                   </div>
-                ) : availableLeads.length === 0 ? (
-                  <div className="rounded-md border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-warning">
-                    No unassigned leads. Upload leads first before creating a campaign.
+                ) : batches.length === 0 ? (
+                  <div className="mt-1.5 rounded-md border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-warning">
+                    No lead batches found. Upload a CSV/XLSX file first.
                   </div>
                 ) : (
-                  <div className="rounded-md border border-border overflow-hidden">
-                    <div className="relative border-b border-border">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <div className="mt-1.5 grid gap-2">
+                    {batches.map((b) => {
+                      const selected = selectedBatchId === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedBatchId(b.id);
+                            setBatchLimit(String(b.available));
+                          }}
+                          className={`w-full text-left rounded-md border px-4 py-3 transition-colors ${
+                            selected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border hover:bg-muted/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-sm truncate">{b.filename}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {new Date(b.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
+                            <span className="text-success font-medium">{b.available} available</span>
+                            <span>{b.used} used</span>
+                            <span>{b.totalCount} total</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {selectedBatch && (
+                  <div className="mt-3">
+                    <label className="text-sm font-medium">How many leads to include</label>
+                    <div className="mt-1.5 flex items-center gap-2">
                       <input
-                        value={leadSearch}
-                        onChange={(e) => setLeadSearch(e.target.value)}
-                        placeholder="Search by name, company or phone…"
-                        className="w-full h-9 bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent/40"
+                        type="number"
+                        min={1}
+                        max={availableInBatch}
+                        value={batchLimit}
+                        onChange={(e) => setBatchLimit(e.target.value)}
+                        className="w-36 h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                       />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={toggleAll}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 bg-muted/40 hover:bg-muted/70 text-sm font-medium transition-colors border-b border-border"
-                    >
-                      {allFilteredSelected ? (
-                        <CheckSquare className="h-4 w-4 text-primary shrink-0" />
-                      ) : someFilteredSelected ? (
-                        <CheckSquare className="h-4 w-4 text-primary/50 shrink-0" />
-                      ) : (
-                        <Square className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )}
-                      {allFilteredSelected ? "Deselect all" : "Select all"}
-                      {q && <span className="ml-auto text-xs text-muted-foreground font-normal">{filteredLeads.length} match{filteredLeads.length !== 1 ? "es" : ""}</span>}
-                    </button>
-                    <div className="max-h-52 overflow-y-auto divide-y divide-border">
-                      {filteredLeads.length === 0 && (
-                        <div className="px-4 py-4 text-sm text-muted-foreground text-center">
-                          No leads match "{leadSearch}"
-                        </div>
-                      )}
-                      {filteredLeads.map((lead) => {
-                        const checked = selectedLeadIds.has(lead.id);
-                        return (
-                          <button
-                            key={lead.id}
-                            type="button"
-                            onClick={() => toggleLead(lead.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/40 ${checked ? "bg-primary/5" : ""}`}
-                          >
-                            {checked ? (
-                              <CheckSquare className="h-4 w-4 text-primary shrink-0" />
-                            ) : (
-                              <Square className="h-4 w-4 text-muted-foreground shrink-0" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium truncate">{lead.name}</div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {[lead.company, lead.phone].filter(Boolean).join(" · ")}
-                              </div>
-                            </div>
-                            <span className="text-xs text-muted-foreground shrink-0">{lead.country}</span>
-                          </button>
-                        );
-                      })}
+                      <span className="text-sm text-muted-foreground">
+                        / {availableInBatch} available
+                      </span>
                     </div>
                   </div>
                 )}
@@ -705,11 +963,10 @@ function Campaigns() {
               </div>
             </div>
 
-            {/* Rate info banner */}
             <div className="mx-5 mb-4 rounded-md bg-muted/50 border border-border px-4 py-2.5 text-xs text-muted-foreground">
               Calls will be placed at <span className="font-semibold text-foreground">{CALLS_PER_MINUTE} calls/minute</span>.
-              {selectedLeadIds.size > 0 && (
-                <> &nbsp;{selectedLeadIds.size} leads → ETA <span className="font-semibold text-foreground">{formatEta(selectedLeadIds.size)}</span>.</>
+              {parsedLimit > 0 && (
+                <> &nbsp;{parsedLimit} leads → ETA <span className="font-semibold text-foreground">{formatEta(parsedLimit)}</span>.</>
               )}
             </div>
 
@@ -720,18 +977,18 @@ function Campaigns() {
             )}
             <div className="p-5 border-t border-border flex justify-end gap-2">
               <button
-                onClick={() => { setCreating(false); setSelectedLeadIds(new Set()); }}
+                onClick={() => { setCreating(false); setSelectedBatchId(null); setBatchLimit(""); }}
                 className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={() => createMut.mutate()}
-                disabled={!form.name || !form.scriptId || selectedLeadIds.size === 0 || createMut.isPending}
+                disabled={!form.name || !form.scriptId || !selectedBatchId || parsedLimit === 0 || createMut.isPending}
                 className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
-                title={selectedLeadIds.size === 0 ? "Select at least one lead" : undefined}
+                title={!selectedBatchId ? "Select a batch" : parsedLimit === 0 ? "Set lead count above 0" : undefined}
               >
-                {createMut.isPending ? "Creating…" : `Create campaign${selectedLeadIds.size > 0 ? ` (${selectedLeadIds.size} leads)` : ""}`}
+                {createMut.isPending ? "Creating…" : `Create campaign${parsedLimit > 0 ? ` (${parsedLimit} leads)` : ""}`}
               </button>
             </div>
           </div>

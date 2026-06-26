@@ -20,7 +20,7 @@ function Calls() {
   const { data, isLoading } = useQuery({
     queryKey: ["calls", page],
     queryFn: () => callsApi.list({ page, limit: LIMIT }),
-    refetchInterval: 30000, // refresh every 30s so completed calls show up once stale cleanup runs
+    refetchInterval: 30000,
   });
 
   const calls = data?.calls ?? [];
@@ -130,7 +130,6 @@ function CallDetail({ call, loading }: { call: Call; loading: boolean }) {
     ? call.transcript
         .split("\n")
         .filter(Boolean)
-        // Filter out the [SYSTEM] prompt — it's the full AI instructions, not a conversation turn
         .filter((line) => !/^\[SYSTEM\]/i.test(line))
         .map((line) => {
           const isAgent = /^\[ASSISTANT\]/i.test(line) || /^\[BOT\]/i.test(line);
