@@ -305,3 +305,103 @@ export interface ApiError {
   message: string;
   code?: string;
 }
+
+// ── WhatsApp Outreach ────────────────────────────────────────────────────────
+
+export type WaOptInStatus =
+  | "NOT_CONTACTED"
+  | "PENDING"
+  | "OPTED_IN"
+  | "DECLINED"
+  | "NO_ANSWER"
+  | "VOICEMAIL"
+  | "NEEDS_MANUAL_REVIEW"
+  | "FAILED";
+
+export type WaMessageDirection = "OUTBOUND" | "INBOUND";
+
+export type WaMessageStatus =
+  | "QUEUED"
+  | "SENT"
+  | "DELIVERED"
+  | "READ"
+  | "FAILED"
+  | "RECEIVED";
+
+export interface WaContactList {
+  id: string;
+  tenantId: string;
+  name: string;
+  sourceFilename?: string;
+  uploadedAt: string;
+  totalContacts: number;
+}
+
+export interface WaContact {
+  id: string;
+  contactListId: string;
+  tenantId: string;
+  fullName?: string;
+  phone: string;
+  businessName?: string;
+  tags?: string;
+  optInStatus: WaOptInStatus;
+  optedOut: boolean;
+  optInTimestamp?: string;
+  optInCallId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WaCampaign {
+  id: string;
+  tenantId: string;
+  name: string;
+  templateName: string;
+  languageCode: string;
+  createdAt: string;
+  _count?: { messages: number };
+}
+
+export interface WaMessage {
+  id: string;
+  contactId: string;
+  contact?: { id: string; fullName?: string; phone: string };
+  campaignId?: string;
+  campaign?: { id: string; name: string };
+  tenantId: string;
+  direction: WaMessageDirection;
+  status: WaMessageStatus;
+  waMessageId?: string;
+  templateName?: string;
+  body?: string;
+  error?: string;
+  createdAt: string;
+}
+
+export interface WaListStats {
+  total: number;
+  NOT_CONTACTED: number;
+  PENDING: number;
+  OPTED_IN: number;
+  DECLINED: number;
+  NO_ANSWER: number;
+  VOICEMAIL: number;
+  NEEDS_MANUAL_REVIEW: number;
+  FAILED: number;
+}
+
+export interface WaUploadResult {
+  listId: string;
+  listName: string;
+  imported: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface WaSendResult {
+  sent: number;
+  failed: number;
+  attempted: number;
+  message?: string;
+}

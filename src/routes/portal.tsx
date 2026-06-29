@@ -20,6 +20,9 @@ import {
   Bot,
   BarChart3,
   Hash,
+  MessageCircle,
+  Send,
+  MessageSquare,
 } from "lucide-react";
 import { DashboardSidebar, type NavEntry } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -112,6 +115,10 @@ const items: NavEntry[] = [
   { to: "/portal/inbound/numbers", label: "Phone Numbers", icon: <Hash className="h-4 w-4" /> },
   { to: "/portal/inbound/calls", label: "Inbound Calls", icon: <PhoneIncoming className="h-4 w-4" /> },
   { to: "/portal/inbound/analytics", label: "Inbound Analytics", icon: <BarChart3 className="h-4 w-4" /> },
+  { section: "WhatsApp Outreach" },
+  { to: "/portal/whatsapp",           label: "Contacts",  icon: <MessageCircle className="h-4 w-4" /> },
+  { to: "/portal/whatsapp/campaigns", label: "Campaigns", icon: <Send className="h-4 w-4" /> },
+  { to: "/portal/whatsapp/messages",  label: "Messages",  icon: <MessageSquare className="h-4 w-4" /> },
   { section: "Account" },
   { to: "/portal/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
   { to: "/portal/settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },

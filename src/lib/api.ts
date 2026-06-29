@@ -806,3 +806,100 @@ export const portalVoiceApi = {
   remove: (): Promise<{ message: string }> =>
     http.delete("/tenant/voice").then((r) => r.data),
 };
+
+// ── WhatsApp Outreach ────────────────────────────────────────────────────────
+
+import type {
+  WaContactList,
+  WaContact,
+  WaCampaign,
+  WaMessage,
+  WaListStats,
+  WaUploadResult,
+  WaSendResult,
+  WaMessageDirection,
+  WaOptInStatus,
+} from "./types";
+
+export const waApi = {
+  // ── Contact Lists ──────────────────────────────────────────────────────────
+
+  getLists: (): Promise<WaContactList[]> =>
+    http.get("/whatsapp/contacts").then((r) => r.data),
+
+  uploadContacts: (
+    file: File,
+    name: string,
+    onProgress?: (pct: number) => void,
+    consentConfirmed?: boolean,
+  ): Promise<WaUploadResult> =>
+    new Promise((resolve, reject) => {
+      const form  = new FormData();
+      form.append("file", file);
+      form.append("name", name);
+      if (consentConfirmed) form.append("consentConfirmed", "true");
+      const token = typeof window !== "undefined" ? localStorage.getItem("vfh_token") : null;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/whatsapp/contacts/upload");
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch { reject(new Error("Invalid response")); }
+        } else {
+          try { reject(new Error(JSON.parse(xhr.responseText).error || "Upload failed")); }
+          catch { reject(new Error("Upload failed")); }
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send(form);
+    }),
+
+  getContacts: (
+    listId: string,
+    params?: { page?: number; limit?: number; optInStatus?: WaOptInStatus },
+  ): Promise<{ list: WaContactList; contacts: WaContact[]; total: number; page: number; pages: number }> =>
+    http.get(`/whatsapp/contacts/${listId}`, { params }).then((r) => r.data),
+
+  getListStats: (listId: string): Promise<WaListStats> =>
+    http.get(`/whatsapp/contacts/${listId}/stats`).then((r) => r.data),
+
+  triggerOptIn: (
+    listId: string,
+  ): Promise<{ message: string; listId: string }> =>
+    http.post(`/whatsapp/contacts/${listId}/trigger-optin`).then((r) => r.data),
+
+  // ── Campaigns ─────────────────────────────────────────────────────────────
+
+  getCampaigns: (): Promise<WaCampaign[]> =>
+    http.get("/whatsapp/campaigns").then((r) => r.data),
+
+  createCampaign: (data: {
+    name: string;
+    templateName: string;
+    languageCode?: string;
+  }): Promise<WaCampaign> =>
+    http.post("/whatsapp/campaigns", data).then((r) => r.data),
+
+  sendCampaign: (
+    campaignId: string,
+    contactListId: string,
+  ): Promise<WaSendResult> =>
+    http.post(`/whatsapp/campaigns/${campaignId}/send`, { contactListId }).then((r) => r.data),
+
+  // ── Messages ──────────────────────────────────────────────────────────────
+
+  getMessages: (params?: {
+    contactId?: string;
+    campaignId?: string;
+    direction?: WaMessageDirection;
+    page?: number;
+    limit?: number;
+  }): Promise<{ messages: WaMessage[]; total: number; page: number; pages: number }> =>
+    http.get("/whatsapp/messages", { params }).then((r) => r.data),
+};

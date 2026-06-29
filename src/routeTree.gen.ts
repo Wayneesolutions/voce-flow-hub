@@ -21,6 +21,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PortalWhatsappRouteImport } from './routes/portal.whatsapp'
 import { Route as PortalVoiceRouteImport } from './routes/portal.voice'
 import { Route as PortalSettingsRouteImport } from './routes/portal.settings'
 import { Route as PortalScriptsRouteImport } from './routes/portal.scripts'
@@ -42,6 +43,9 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-password'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
+import { Route as PortalWhatsappIndexRouteImport } from './routes/portal.whatsapp.index'
+import { Route as PortalWhatsappMessagesRouteImport } from './routes/portal.whatsapp.messages'
+import { Route as PortalWhatsappCampaignsRouteImport } from './routes/portal.whatsapp.campaigns'
 import { Route as PortalInboundReceptionistRouteImport } from './routes/portal.inbound.receptionist'
 import { Route as PortalInboundNumbersRouteImport } from './routes/portal.inbound.numbers'
 import { Route as PortalInboundCallsRouteImport } from './routes/portal.inbound.calls'
@@ -106,6 +110,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const PortalWhatsappRoute = PortalWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PortalVoiceRoute = PortalVoiceRouteImport.update({
   id: '/voice',
@@ -212,6 +221,21 @@ const AdminBillingRoute = AdminBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AdminRoute,
 } as any)
+const PortalWhatsappIndexRoute = PortalWhatsappIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalWhatsappRoute,
+} as any)
+const PortalWhatsappMessagesRoute = PortalWhatsappMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => PortalWhatsappRoute,
+} as any)
+const PortalWhatsappCampaignsRoute = PortalWhatsappCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => PortalWhatsappRoute,
+} as any)
 const PortalInboundReceptionistRoute =
   PortalInboundReceptionistRouteImport.update({
     id: '/receptionist',
@@ -266,12 +290,16 @@ export interface FileRoutesByFullPath {
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
   '/portal/voice': typeof PortalVoiceRoute
+  '/portal/whatsapp': typeof PortalWhatsappRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
   '/portal/inbound/calls': typeof PortalInboundCallsRoute
   '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
   '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
+  '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
+  '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
+  '/portal/whatsapp/': typeof PortalWhatsappIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -309,6 +337,9 @@ export interface FileRoutesByTo {
   '/portal/inbound/calls': typeof PortalInboundCallsRoute
   '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
   '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
+  '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
+  '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
+  '/portal/whatsapp': typeof PortalWhatsappIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -343,12 +374,16 @@ export interface FileRoutesById {
   '/portal/scripts': typeof PortalScriptsRoute
   '/portal/settings': typeof PortalSettingsRoute
   '/portal/voice': typeof PortalVoiceRoute
+  '/portal/whatsapp': typeof PortalWhatsappRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
   '/portal/inbound/calls': typeof PortalInboundCallsRoute
   '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
   '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
+  '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
+  '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
+  '/portal/whatsapp/': typeof PortalWhatsappIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -384,12 +419,16 @@ export interface FileRouteTypes {
     | '/portal/scripts'
     | '/portal/settings'
     | '/portal/voice'
+    | '/portal/whatsapp'
     | '/admin/'
     | '/portal/'
     | '/portal/inbound/analytics'
     | '/portal/inbound/calls'
     | '/portal/inbound/numbers'
     | '/portal/inbound/receptionist'
+    | '/portal/whatsapp/campaigns'
+    | '/portal/whatsapp/messages'
+    | '/portal/whatsapp/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -427,6 +466,9 @@ export interface FileRouteTypes {
     | '/portal/inbound/calls'
     | '/portal/inbound/numbers'
     | '/portal/inbound/receptionist'
+    | '/portal/whatsapp/campaigns'
+    | '/portal/whatsapp/messages'
+    | '/portal/whatsapp'
   id:
     | '__root__'
     | '/'
@@ -460,12 +502,16 @@ export interface FileRouteTypes {
     | '/portal/scripts'
     | '/portal/settings'
     | '/portal/voice'
+    | '/portal/whatsapp'
     | '/admin/'
     | '/portal/'
     | '/portal/inbound/analytics'
     | '/portal/inbound/calls'
     | '/portal/inbound/numbers'
     | '/portal/inbound/receptionist'
+    | '/portal/whatsapp/campaigns'
+    | '/portal/whatsapp/messages'
+    | '/portal/whatsapp/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -567,6 +613,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/portal/whatsapp': {
+      id: '/portal/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/portal/whatsapp'
+      preLoaderRoute: typeof PortalWhatsappRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/portal/voice': {
       id: '/portal/voice'
@@ -715,6 +768,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBillingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/portal/whatsapp/': {
+      id: '/portal/whatsapp/'
+      path: '/'
+      fullPath: '/portal/whatsapp/'
+      preLoaderRoute: typeof PortalWhatsappIndexRouteImport
+      parentRoute: typeof PortalWhatsappRoute
+    }
+    '/portal/whatsapp/messages': {
+      id: '/portal/whatsapp/messages'
+      path: '/messages'
+      fullPath: '/portal/whatsapp/messages'
+      preLoaderRoute: typeof PortalWhatsappMessagesRouteImport
+      parentRoute: typeof PortalWhatsappRoute
+    }
+    '/portal/whatsapp/campaigns': {
+      id: '/portal/whatsapp/campaigns'
+      path: '/campaigns'
+      fullPath: '/portal/whatsapp/campaigns'
+      preLoaderRoute: typeof PortalWhatsappCampaignsRouteImport
+      parentRoute: typeof PortalWhatsappRoute
+    }
     '/portal/inbound/receptionist': {
       id: '/portal/inbound/receptionist'
       path: '/receptionist'
@@ -792,6 +866,22 @@ const PortalInboundRouteWithChildren = PortalInboundRoute._addFileChildren(
   PortalInboundRouteChildren,
 )
 
+interface PortalWhatsappRouteChildren {
+  PortalWhatsappCampaignsRoute: typeof PortalWhatsappCampaignsRoute
+  PortalWhatsappMessagesRoute: typeof PortalWhatsappMessagesRoute
+  PortalWhatsappIndexRoute: typeof PortalWhatsappIndexRoute
+}
+
+const PortalWhatsappRouteChildren: PortalWhatsappRouteChildren = {
+  PortalWhatsappCampaignsRoute: PortalWhatsappCampaignsRoute,
+  PortalWhatsappMessagesRoute: PortalWhatsappMessagesRoute,
+  PortalWhatsappIndexRoute: PortalWhatsappIndexRoute,
+}
+
+const PortalWhatsappRouteWithChildren = PortalWhatsappRoute._addFileChildren(
+  PortalWhatsappRouteChildren,
+)
+
 interface PortalRouteChildren {
   PortalBillingRoute: typeof PortalBillingRoute
   PortalCallbacksRoute: typeof PortalCallbacksRoute
@@ -804,6 +894,7 @@ interface PortalRouteChildren {
   PortalScriptsRoute: typeof PortalScriptsRoute
   PortalSettingsRoute: typeof PortalSettingsRoute
   PortalVoiceRoute: typeof PortalVoiceRoute
+  PortalWhatsappRoute: typeof PortalWhatsappRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
@@ -819,6 +910,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalScriptsRoute: PortalScriptsRoute,
   PortalSettingsRoute: PortalSettingsRoute,
   PortalVoiceRoute: PortalVoiceRoute,
+  PortalWhatsappRoute: PortalWhatsappRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,
 }
 
