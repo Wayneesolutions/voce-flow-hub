@@ -235,9 +235,14 @@ function WhatsAppContacts() {
             <Users className="h-4 w-4 text-muted-foreground" />
             Contact Lists
           </h2>
-          <Link to="/portal/whatsapp/campaigns" className="text-xs text-primary hover:underline flex items-center gap-1">
-            Go to Campaigns <ChevronRight className="h-3 w-3" />
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/portal/whatsapp/templates" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Templates <ChevronRight className="h-3 w-3" />
+            </Link>
+            <Link to="/portal/whatsapp/campaigns" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Campaigns <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
 
         {isLoading ? (

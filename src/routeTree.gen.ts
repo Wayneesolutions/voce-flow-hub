@@ -34,6 +34,7 @@ import { Route as PortalCallsRouteImport } from './routes/portal.calls'
 import { Route as PortalCallbacksRouteImport } from './routes/portal.callbacks'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
+import { Route as AdminWaTemplatesRouteImport } from './routes/admin.wa-templates'
 import { Route as AdminScriptsRouteImport } from './routes/admin.scripts'
 import { Route as AdminResetPasswordRouteImport } from './routes/admin.reset-password'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
@@ -44,6 +45,7 @@ import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-p
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as PortalWhatsappIndexRouteImport } from './routes/portal.whatsapp.index'
+import { Route as PortalWhatsappTemplatesRouteImport } from './routes/portal.whatsapp.templates'
 import { Route as PortalWhatsappMessagesRouteImport } from './routes/portal.whatsapp.messages'
 import { Route as PortalWhatsappCampaignsRouteImport } from './routes/portal.whatsapp.campaigns'
 import { Route as PortalInboundReceptionistRouteImport } from './routes/portal.inbound.receptionist'
@@ -176,6 +178,11 @@ const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   path: '/checkout/success',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminWaTemplatesRoute = AdminWaTemplatesRouteImport.update({
+  id: '/wa-templates',
+  path: '/wa-templates',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminScriptsRoute = AdminScriptsRouteImport.update({
   id: '/scripts',
   path: '/scripts',
@@ -224,6 +231,11 @@ const AdminBillingRoute = AdminBillingRouteImport.update({
 const PortalWhatsappIndexRoute = PortalWhatsappIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => PortalWhatsappRoute,
+} as any)
+const PortalWhatsappTemplatesRoute = PortalWhatsappTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => PortalWhatsappRoute,
 } as any)
 const PortalWhatsappMessagesRoute = PortalWhatsappMessagesRouteImport.update({
@@ -278,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/admin/wa-templates': typeof AdminWaTemplatesRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
@@ -299,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
   '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
   '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
+  '/portal/whatsapp/templates': typeof PortalWhatsappTemplatesRoute
   '/portal/whatsapp/': typeof PortalWhatsappIndexRoute
 }
 export interface FileRoutesByTo {
@@ -319,6 +333,7 @@ export interface FileRoutesByTo {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/admin/wa-templates': typeof AdminWaTemplatesRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
@@ -339,6 +354,7 @@ export interface FileRoutesByTo {
   '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
   '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
   '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
+  '/portal/whatsapp/templates': typeof PortalWhatsappTemplatesRoute
   '/portal/whatsapp': typeof PortalWhatsappIndexRoute
 }
 export interface FileRoutesById {
@@ -362,6 +378,7 @@ export interface FileRoutesById {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
   '/admin/scripts': typeof AdminScriptsRoute
+  '/admin/wa-templates': typeof AdminWaTemplatesRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
@@ -383,6 +400,7 @@ export interface FileRoutesById {
   '/portal/inbound/receptionist': typeof PortalInboundReceptionistRoute
   '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
   '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
+  '/portal/whatsapp/templates': typeof PortalWhatsappTemplatesRoute
   '/portal/whatsapp/': typeof PortalWhatsappIndexRoute
 }
 export interface FileRouteTypes {
@@ -407,6 +425,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/reset-password'
     | '/admin/scripts'
+    | '/admin/wa-templates'
     | '/checkout/success'
     | '/portal/billing'
     | '/portal/callbacks'
@@ -428,6 +447,7 @@ export interface FileRouteTypes {
     | '/portal/inbound/receptionist'
     | '/portal/whatsapp/campaigns'
     | '/portal/whatsapp/messages'
+    | '/portal/whatsapp/templates'
     | '/portal/whatsapp/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -448,6 +468,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/reset-password'
     | '/admin/scripts'
+    | '/admin/wa-templates'
     | '/checkout/success'
     | '/portal/billing'
     | '/portal/callbacks'
@@ -468,6 +489,7 @@ export interface FileRouteTypes {
     | '/portal/inbound/receptionist'
     | '/portal/whatsapp/campaigns'
     | '/portal/whatsapp/messages'
+    | '/portal/whatsapp/templates'
     | '/portal/whatsapp'
   id:
     | '__root__'
@@ -490,6 +512,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/reset-password'
     | '/admin/scripts'
+    | '/admin/wa-templates'
     | '/checkout/success'
     | '/portal/billing'
     | '/portal/callbacks'
@@ -511,6 +534,7 @@ export interface FileRouteTypes {
     | '/portal/inbound/receptionist'
     | '/portal/whatsapp/campaigns'
     | '/portal/whatsapp/messages'
+    | '/portal/whatsapp/templates'
     | '/portal/whatsapp/'
   fileRoutesById: FileRoutesById
 }
@@ -705,6 +729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/wa-templates': {
+      id: '/admin/wa-templates'
+      path: '/wa-templates'
+      fullPath: '/admin/wa-templates'
+      preLoaderRoute: typeof AdminWaTemplatesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/scripts': {
       id: '/admin/scripts'
       path: '/scripts'
@@ -775,6 +806,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalWhatsappIndexRouteImport
       parentRoute: typeof PortalWhatsappRoute
     }
+    '/portal/whatsapp/templates': {
+      id: '/portal/whatsapp/templates'
+      path: '/templates'
+      fullPath: '/portal/whatsapp/templates'
+      preLoaderRoute: typeof PortalWhatsappTemplatesRouteImport
+      parentRoute: typeof PortalWhatsappRoute
+    }
     '/portal/whatsapp/messages': {
       id: '/portal/whatsapp/messages'
       path: '/messages'
@@ -830,6 +868,7 @@ interface AdminRouteChildren {
   AdminProfileRoute: typeof AdminProfileRoute
   AdminResetPasswordRoute: typeof AdminResetPasswordRoute
   AdminScriptsRoute: typeof AdminScriptsRoute
+  AdminWaTemplatesRoute: typeof AdminWaTemplatesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -843,6 +882,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProfileRoute: AdminProfileRoute,
   AdminResetPasswordRoute: AdminResetPasswordRoute,
   AdminScriptsRoute: AdminScriptsRoute,
+  AdminWaTemplatesRoute: AdminWaTemplatesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -869,12 +909,14 @@ const PortalInboundRouteWithChildren = PortalInboundRoute._addFileChildren(
 interface PortalWhatsappRouteChildren {
   PortalWhatsappCampaignsRoute: typeof PortalWhatsappCampaignsRoute
   PortalWhatsappMessagesRoute: typeof PortalWhatsappMessagesRoute
+  PortalWhatsappTemplatesRoute: typeof PortalWhatsappTemplatesRoute
   PortalWhatsappIndexRoute: typeof PortalWhatsappIndexRoute
 }
 
 const PortalWhatsappRouteChildren: PortalWhatsappRouteChildren = {
   PortalWhatsappCampaignsRoute: PortalWhatsappCampaignsRoute,
   PortalWhatsappMessagesRoute: PortalWhatsappMessagesRoute,
+  PortalWhatsappTemplatesRoute: PortalWhatsappTemplatesRoute,
   PortalWhatsappIndexRoute: PortalWhatsappIndexRoute,
 }
 

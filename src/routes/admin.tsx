@@ -12,6 +12,7 @@ import {
   LogOut,
   Tag,
   UserCog,
+  MessageSquare,
 } from "lucide-react";
 import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -22,6 +23,7 @@ const items: NavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: <Users className="h-4 w-4" /> },
   { to: "/admin/numbers", label: "Phone Numbers", icon: <Phone className="h-4 w-4" /> },
   { to: "/admin/scripts", label: "Script Review", icon: <FileCheck2 className="h-4 w-4" /> },
+  { to: "/admin/wa-templates", label: "WA Templates", icon: <MessageSquare className="h-4 w-4" /> },
   { to: "/admin/plans", label: "Plans", icon: <Tag className="h-4 w-4" /> },
   { to: "/admin/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
   { to: "/admin/profile", label: "My Profile", icon: <UserCog className="h-4 w-4" /> },

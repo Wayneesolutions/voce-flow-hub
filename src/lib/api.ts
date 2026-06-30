@@ -177,6 +177,25 @@ export const adminNotificationsApi = {
     adminHttp.get("/admin/notifications").then((r) => r.data),
 };
 
+// ── Admin: WhatsApp Template Review ──────────────────────────────────────────
+
+export const adminWaTemplatesApi = {
+  list: (status?: string): Promise<WaTemplateRequest[]> =>
+    adminHttp.get("/admin/wa-templates", { params: status ? { status } : undefined }).then((r) => r.data),
+
+  approve: (id: string): Promise<{ template: WaTemplateRequest; meta: unknown }> =>
+    adminHttp.post(`/admin/wa-templates/${id}/approve`).then((r) => r.data),
+
+  reject: (id: string, note: string): Promise<WaTemplateRequest> =>
+    adminHttp.post(`/admin/wa-templates/${id}/reject`, { note }).then((r) => r.data),
+
+  getWaConfig: (tenantId: string): Promise<{ wabaId?: string; phoneNumberId?: string }> =>
+    adminHttp.get(`/admin/tenants/${tenantId}/wa-config`).then((r) => r.data),
+
+  setWaConfig: (tenantId: string, cfg: { wabaId?: string; phoneNumberId?: string; accessToken?: string }): Promise<unknown> =>
+    adminHttp.put(`/admin/tenants/${tenantId}/wa-config`, cfg).then((r) => r.data),
+};
+
 // ── Admin: Global search ──────────────────────────────────────────────────────
 export interface AdminSearchResult {
   clients: { id: string; name: string; ownerEmail: string; status: string }[];
@@ -819,6 +838,8 @@ import type {
   WaSendResult,
   WaMessageDirection,
   WaOptInStatus,
+  WaTemplateRequest,
+  WaTemplateButton,
 } from "./types";
 
 export const waApi = {
@@ -902,4 +923,23 @@ export const waApi = {
     limit?: number;
   }): Promise<{ messages: WaMessage[]; total: number; page: number; pages: number }> =>
     http.get("/whatsapp/messages", { params }).then((r) => r.data),
+
+  // ── Templates ─────────────────────────────────────────────────────────────
+
+  getTemplates: (): Promise<WaTemplateRequest[]> =>
+    http.get("/whatsapp/templates").then((r) => r.data),
+
+  createTemplate: (data: {
+    name: string;
+    category?: string;
+    languageCode?: string;
+    headerText?: string;
+    bodyText: string;
+    footerText?: string;
+    buttons?: WaTemplateButton[];
+  }): Promise<WaTemplateRequest> =>
+    http.post("/whatsapp/templates", data).then((r) => r.data),
+
+  deleteTemplate: (id: string): Promise<{ deleted: boolean }> =>
+    http.delete(`/whatsapp/templates/${id}`).then((r) => r.data),
 };

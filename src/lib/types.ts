@@ -405,3 +405,41 @@ export interface WaSendResult {
   attempted: number;
   message?: string;
 }
+
+// ── WhatsApp Template Requests ───────────────────────────────────────────────
+
+export type WaTemplateStatus =
+  | "DRAFT"
+  | "PENDING_ADMIN"
+  | "ADMIN_REJECTED"
+  | "SUBMITTED_TO_META"
+  | "APPROVED"
+  | "META_REJECTED";
+
+export interface WaTemplateButton {
+  type: "QUICK_REPLY" | "URL" | "PHONE_NUMBER";
+  text: string;
+  url?: string;
+  phone_number?: string;
+}
+
+export interface WaTemplateRequest {
+  id: string;
+  tenantId: string;
+  name: string;
+  category: string;
+  languageCode: string;
+  headerText?: string;
+  bodyText: string;
+  footerText?: string;
+  buttons?: WaTemplateButton[];
+  status: WaTemplateStatus;
+  adminNote?: string;
+  metaTemplateId?: string;
+  metaStatus?: string;
+  metaRejectionReason?: string;
+  submittedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  tenant?: { id: string; name: string; ownerEmail: string };
+}
