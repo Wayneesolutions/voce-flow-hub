@@ -45,6 +45,7 @@ import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-p
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as PortalWhatsappIndexRouteImport } from './routes/portal.whatsapp.index'
+import { Route as PortalCampaignsIndexRouteImport } from './routes/portal.campaigns.index'
 import { Route as PortalWhatsappTemplatesRouteImport } from './routes/portal.whatsapp.templates'
 import { Route as PortalWhatsappMessagesRouteImport } from './routes/portal.whatsapp.messages'
 import { Route as PortalWhatsappCampaignsRouteImport } from './routes/portal.whatsapp.campaigns'
@@ -52,6 +53,7 @@ import { Route as PortalInboundReceptionistRouteImport } from './routes/portal.i
 import { Route as PortalInboundNumbersRouteImport } from './routes/portal.inbound.numbers'
 import { Route as PortalInboundCallsRouteImport } from './routes/portal.inbound.calls'
 import { Route as PortalInboundAnalyticsRouteImport } from './routes/portal.inbound.analytics'
+import { Route as PortalCampaignsIdRouteImport } from './routes/portal.campaigns.$id'
 
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
@@ -233,6 +235,11 @@ const PortalWhatsappIndexRoute = PortalWhatsappIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PortalWhatsappRoute,
 } as any)
+const PortalCampaignsIndexRoute = PortalCampaignsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalCampaignsRoute,
+} as any)
 const PortalWhatsappTemplatesRoute = PortalWhatsappTemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
@@ -269,6 +276,11 @@ const PortalInboundAnalyticsRoute = PortalInboundAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => PortalInboundRoute,
 } as any)
+const PortalCampaignsIdRoute = PortalCampaignsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PortalCampaignsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -295,7 +307,7 @@ export interface FileRoutesByFullPath {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
-  '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/campaigns': typeof PortalCampaignsRouteWithChildren
   '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
@@ -306,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/portal/whatsapp': typeof PortalWhatsappRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/portal/campaigns/$id': typeof PortalCampaignsIdRoute
   '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
   '/portal/inbound/calls': typeof PortalInboundCallsRoute
   '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
@@ -313,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
   '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
   '/portal/whatsapp/templates': typeof PortalWhatsappTemplatesRoute
+  '/portal/campaigns/': typeof PortalCampaignsIndexRoute
   '/portal/whatsapp/': typeof PortalWhatsappIndexRoute
 }
 export interface FileRoutesByTo {
@@ -338,7 +352,6 @@ export interface FileRoutesByTo {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
-  '/portal/campaigns': typeof PortalCampaignsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
@@ -348,6 +361,7 @@ export interface FileRoutesByTo {
   '/portal/voice': typeof PortalVoiceRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/portal/campaigns/$id': typeof PortalCampaignsIdRoute
   '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
   '/portal/inbound/calls': typeof PortalInboundCallsRoute
   '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
@@ -355,6 +369,7 @@ export interface FileRoutesByTo {
   '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
   '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
   '/portal/whatsapp/templates': typeof PortalWhatsappTemplatesRoute
+  '/portal/campaigns': typeof PortalCampaignsIndexRoute
   '/portal/whatsapp': typeof PortalWhatsappIndexRoute
 }
 export interface FileRoutesById {
@@ -383,7 +398,7 @@ export interface FileRoutesById {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
-  '/portal/campaigns': typeof PortalCampaignsRoute
+  '/portal/campaigns': typeof PortalCampaignsRouteWithChildren
   '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
@@ -394,6 +409,7 @@ export interface FileRoutesById {
   '/portal/whatsapp': typeof PortalWhatsappRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/portal/campaigns/$id': typeof PortalCampaignsIdRoute
   '/portal/inbound/analytics': typeof PortalInboundAnalyticsRoute
   '/portal/inbound/calls': typeof PortalInboundCallsRoute
   '/portal/inbound/numbers': typeof PortalInboundNumbersRoute
@@ -401,6 +417,7 @@ export interface FileRoutesById {
   '/portal/whatsapp/campaigns': typeof PortalWhatsappCampaignsRoute
   '/portal/whatsapp/messages': typeof PortalWhatsappMessagesRoute
   '/portal/whatsapp/templates': typeof PortalWhatsappTemplatesRoute
+  '/portal/campaigns/': typeof PortalCampaignsIndexRoute
   '/portal/whatsapp/': typeof PortalWhatsappIndexRoute
 }
 export interface FileRouteTypes {
@@ -441,6 +458,7 @@ export interface FileRouteTypes {
     | '/portal/whatsapp'
     | '/admin/'
     | '/portal/'
+    | '/portal/campaigns/$id'
     | '/portal/inbound/analytics'
     | '/portal/inbound/calls'
     | '/portal/inbound/numbers'
@@ -448,6 +466,7 @@ export interface FileRouteTypes {
     | '/portal/whatsapp/campaigns'
     | '/portal/whatsapp/messages'
     | '/portal/whatsapp/templates'
+    | '/portal/campaigns/'
     | '/portal/whatsapp/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -473,7 +492,6 @@ export interface FileRouteTypes {
     | '/portal/billing'
     | '/portal/callbacks'
     | '/portal/calls'
-    | '/portal/campaigns'
     | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
@@ -483,6 +501,7 @@ export interface FileRouteTypes {
     | '/portal/voice'
     | '/admin'
     | '/portal'
+    | '/portal/campaigns/$id'
     | '/portal/inbound/analytics'
     | '/portal/inbound/calls'
     | '/portal/inbound/numbers'
@@ -490,6 +509,7 @@ export interface FileRouteTypes {
     | '/portal/whatsapp/campaigns'
     | '/portal/whatsapp/messages'
     | '/portal/whatsapp/templates'
+    | '/portal/campaigns'
     | '/portal/whatsapp'
   id:
     | '__root__'
@@ -528,6 +548,7 @@ export interface FileRouteTypes {
     | '/portal/whatsapp'
     | '/admin/'
     | '/portal/'
+    | '/portal/campaigns/$id'
     | '/portal/inbound/analytics'
     | '/portal/inbound/calls'
     | '/portal/inbound/numbers'
@@ -535,6 +556,7 @@ export interface FileRouteTypes {
     | '/portal/whatsapp/campaigns'
     | '/portal/whatsapp/messages'
     | '/portal/whatsapp/templates'
+    | '/portal/campaigns/'
     | '/portal/whatsapp/'
   fileRoutesById: FileRoutesById
 }
@@ -806,6 +828,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalWhatsappIndexRouteImport
       parentRoute: typeof PortalWhatsappRoute
     }
+    '/portal/campaigns/': {
+      id: '/portal/campaigns/'
+      path: '/'
+      fullPath: '/portal/campaigns/'
+      preLoaderRoute: typeof PortalCampaignsIndexRouteImport
+      parentRoute: typeof PortalCampaignsRoute
+    }
     '/portal/whatsapp/templates': {
       id: '/portal/whatsapp/templates'
       path: '/templates'
@@ -855,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalInboundAnalyticsRouteImport
       parentRoute: typeof PortalInboundRoute
     }
+    '/portal/campaigns/$id': {
+      id: '/portal/campaigns/$id'
+      path: '/$id'
+      fullPath: '/portal/campaigns/$id'
+      preLoaderRoute: typeof PortalCampaignsIdRouteImport
+      parentRoute: typeof PortalCampaignsRoute
+    }
   }
 }
 
@@ -887,6 +923,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface PortalCampaignsRouteChildren {
+  PortalCampaignsIdRoute: typeof PortalCampaignsIdRoute
+  PortalCampaignsIndexRoute: typeof PortalCampaignsIndexRoute
+}
+
+const PortalCampaignsRouteChildren: PortalCampaignsRouteChildren = {
+  PortalCampaignsIdRoute: PortalCampaignsIdRoute,
+  PortalCampaignsIndexRoute: PortalCampaignsIndexRoute,
+}
+
+const PortalCampaignsRouteWithChildren = PortalCampaignsRoute._addFileChildren(
+  PortalCampaignsRouteChildren,
+)
 
 interface PortalInboundRouteChildren {
   PortalInboundAnalyticsRoute: typeof PortalInboundAnalyticsRoute
@@ -928,7 +978,7 @@ interface PortalRouteChildren {
   PortalBillingRoute: typeof PortalBillingRoute
   PortalCallbacksRoute: typeof PortalCallbacksRoute
   PortalCallsRoute: typeof PortalCallsRoute
-  PortalCampaignsRoute: typeof PortalCampaignsRoute
+  PortalCampaignsRoute: typeof PortalCampaignsRouteWithChildren
   PortalInboundRoute: typeof PortalInboundRouteWithChildren
   PortalLeadsRoute: typeof PortalLeadsRoute
   PortalLiveCallsRoute: typeof PortalLiveCallsRoute
@@ -944,7 +994,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalBillingRoute: PortalBillingRoute,
   PortalCallbacksRoute: PortalCallbacksRoute,
   PortalCallsRoute: PortalCallsRoute,
-  PortalCampaignsRoute: PortalCampaignsRoute,
+  PortalCampaignsRoute: PortalCampaignsRouteWithChildren,
   PortalInboundRoute: PortalInboundRouteWithChildren,
   PortalLeadsRoute: PortalLeadsRoute,
   PortalLiveCallsRoute: PortalLiveCallsRoute,

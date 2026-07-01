@@ -210,6 +210,7 @@ export interface Tenant {
   createdAt: string;
   clonedVoiceId?: string | null;
   clonedVoiceName?: string | null;
+  waRequestedPhone?: string | null;
   plan?: { id: string; name: string; price: number; minutesIncluded: number } | null;
   phoneNumbers?: TenantPhone[];
   _count?: { leads: number; calls: number; campaigns: number; inboundCalls: number; inboundAssistants: number };

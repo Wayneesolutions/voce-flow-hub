@@ -189,7 +189,7 @@ export const adminWaTemplatesApi = {
   reject: (id: string, note: string): Promise<WaTemplateRequest> =>
     adminHttp.post(`/admin/wa-templates/${id}/reject`, { note }).then((r) => r.data),
 
-  getWaConfig: (tenantId: string): Promise<{ wabaId?: string; phoneNumberId?: string }> =>
+  getWaConfig: (tenantId: string): Promise<{ wabaId?: string; phoneNumberId?: string; accessToken?: string }> =>
     adminHttp.get(`/admin/tenants/${tenantId}/wa-config`).then((r) => r.data),
 
   setWaConfig: (tenantId: string, cfg: { wabaId?: string; phoneNumberId?: string; accessToken?: string }): Promise<unknown> =>
@@ -587,6 +587,8 @@ export interface TenantMe {
   planExpiresAt: string | null;
   hasSubscription: boolean;
   plan: { id: string; name: string; price: number; minutesIncluded: number; features: string[] } | null;
+  waRequestedPhone: string | null;
+  hasWaConfig: boolean;
 }
 
 export interface IntegrationUpdate {
@@ -609,7 +611,7 @@ export const tenantApi = {
   updateIntegrations: (data: IntegrationUpdate): Promise<{ message: string }> =>
     http.patch("/tenant/integrations", data).then((r) => r.data),
 
-  updateProfile: (data: { name?: string; ownerName?: string; primaryColor?: string }): Promise<{ name: string; ownerName: string; primaryColor: string }> =>
+  updateProfile: (data: { name?: string; ownerName?: string; primaryColor?: string; waRequestedPhone?: string | null }): Promise<{ name: string; ownerName: string; primaryColor: string; waRequestedPhone: string | null }> =>
     http.patch("/tenant/profile", data).then((r) => r.data),
 
   uploadLogo: (file: File): Promise<{ logoUrl: string }> => {

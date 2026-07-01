@@ -5,7 +5,7 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { tenantApi, type IntegrationUpdate } from "@/lib/api";
 import {
   Building2, KeyRound, Palette, Upload, Loader2,
-  CheckCircle2, Circle, Eye, EyeOff,
+  CheckCircle2, Circle, Eye, EyeOff, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,17 +31,28 @@ function Settings() {
 
   // Profile form — synced from tenant on load
   const [profile, setProfile] = useState({ name: "", ownerName: "", primaryColor: "" });
+  const [waPhone, setWaPhone] = useState("");
+
   useEffect(() => {
-    if (tenant) setProfile({
-      name: tenant.name,
-      ownerName: tenant.ownerName ?? "",
-      primaryColor: tenant.primaryColor ?? "#2E86DE",
-    });
+    if (tenant) {
+      setProfile({
+        name: tenant.name,
+        ownerName: tenant.ownerName ?? "",
+        primaryColor: tenant.primaryColor ?? "#2E86DE",
+      });
+      setWaPhone(tenant.waRequestedPhone ?? "");
+    }
   }, [tenant?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const profileMut = useMutation({
     mutationFn: tenantApi.updateProfile,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tenant-me"] }); toast.success("Profile saved"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const waPhoneMut = useMutation({
+    mutationFn: (phone: string) => tenantApi.updateProfile({ waRequestedPhone: phone || null }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tenant-me"] }); toast.success("WhatsApp number saved"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -290,6 +301,68 @@ function Settings() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* ── WhatsApp Outreach ────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-border">
+            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">WhatsApp Outreach</span>
+          </div>
+
+          <div className="p-6 space-y-5">
+            {/* Setup status */}
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+              {tenant.hasWaConfig ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-700">WhatsApp is active</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Your number has been configured by our team. You can send campaigns from the WhatsApp section.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Circle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-700">Setup pending</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Enter your WhatsApp business number below. Our team will complete the Meta verification and activate it within 1–2 business days.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Phone number input */}
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Your WhatsApp business number
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={waPhone}
+                  onChange={(e) => setWaPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="flex-1 h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+                <button
+                  onClick={() => waPhoneMut.mutate(waPhone)}
+                  disabled={waPhoneMut.isPending || waPhone === (tenant.waRequestedPhone ?? "")}
+                  className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-2 shrink-0"
+                >
+                  {waPhoneMut.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Save
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Include country code (e.g. +91 for India). This is the number customers will receive messages from.
+              </p>
             </div>
           </div>
         </section>

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { adminTenantsApi } from "@/lib/api";
+import { adminTenantsApi, adminWaTemplatesApi } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
-import { Plus, Search, X, Upload, ImageIcon } from "lucide-react";
+import { Plus, Search, X, Upload, ImageIcon, MessageCircle, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 
@@ -110,6 +110,37 @@ function ClientsPage() {
       toast.success(`Client ${status === "SUSPENDED" ? "suspended" : status === "PAUSED" ? "paused" : "activated"}`);
     },
     onError: () => toast.error("Failed to update status"),
+  });
+
+  const [waForm, setWaForm] = useState({ phoneNumberId: "" });
+  const [waFormDirty, setWaFormDirty] = useState(false);
+
+  const { data: waConfig, isLoading: waConfigLoading } = useQuery({
+    queryKey: ["admin", "wa-config", selected?.id],
+    queryFn: () => adminWaTemplatesApi.getWaConfig(selected!.id),
+    enabled: !!selected,
+    staleTime: 30_000,
+  });
+
+  // Populate form once waConfig loads (or when selected tenant switches)
+  useEffect(() => {
+    setWaForm({
+      phoneNumberId: waConfig?.phoneNumberId ?? "",
+    });
+    setWaFormDirty(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waConfig, selected?.id]);
+
+  const waConfigMut = useMutation({
+    mutationFn: () => adminWaTemplatesApi.setWaConfig(selected!.id, {
+      phoneNumberId: waForm.phoneNumberId || undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "wa-config", selected!.id] });
+      setWaFormDirty(false);
+      toast.success("WhatsApp config saved");
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const f = (key: keyof typeof form, val: string) => setForm((p) => ({ ...p, [key]: val }));
@@ -276,6 +307,63 @@ function ClientsPage() {
               <Row label="Inbound calls" value={String(selected._count?.inboundCalls ?? "—")} />
               <Row label="Receptionists" value={String(selected._count?.inboundAssistants ?? "—")} />
             </dl>
+
+            {/* WhatsApp Config */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Config
+              </h4>
+
+              {/* Client's requested number — read-only info for admin */}
+              <div className={`rounded-lg border px-3 py-2.5 ${
+                selected.waRequestedPhone
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-border bg-muted/30"
+              }`}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Client's requested number
+                </p>
+                {selected.waRequestedPhone ? (
+                  <p className="text-sm font-mono font-medium">{selected.waRequestedPhone}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Not submitted yet</p>
+                )}
+                {selected.waRequestedPhone && (
+                  <p className="text-[11px] text-amber-700 mt-1">
+                    Add this number to Meta Business Manager, then fill in the IDs below.
+                  </p>
+                )}
+              </div>
+
+              {waConfigLoading ? (
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <WaField
+                    label="Phone Number ID"
+                    placeholder="e.g. 1188276041032585"
+                    value={waForm.phoneNumberId}
+                    onChange={(v) => { setWaForm((p) => ({ ...p, phoneNumberId: v })); setWaFormDirty(true); }}
+                  />
+                  <button
+                    onClick={() => waConfigMut.mutate()}
+                    disabled={waConfigMut.isPending || !waFormDirty}
+                    className="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    {waConfigMut.isPending
+                      ? <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
+                      : <><Save className="h-3 w-3" /> Save</>
+                    }
+                  </button>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Get this from Meta Business Manager → WhatsApp → Phone Numbers after adding the client's number.
+                    Leave blank to use the platform default number.
+                  </p>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
@@ -471,6 +559,45 @@ function Field({
         placeholder={placeholder}
         className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
       />
+    </div>
+  );
+}
+
+function WaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  secret,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  secret?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label className="text-[11px] font-medium text-muted-foreground block mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={secret && !show ? "password" : "text"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full h-8 rounded-md border border-border bg-background px-2.5 pr-14 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40 font-mono"
+        />
+        {secret && (
+          <button
+            type="button"
+            onClick={() => setShow((s) => !s)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            {show ? "hide" : "show"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
