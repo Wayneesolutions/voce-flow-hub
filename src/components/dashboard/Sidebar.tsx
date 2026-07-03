@@ -30,7 +30,7 @@ export function DashboardSidebar({ brand, items, footer }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const Nav = (
-    <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+    <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 py-4 space-y-1">
       {items.map((entry, i) => {
         if (isSection(entry)) {
           return (
