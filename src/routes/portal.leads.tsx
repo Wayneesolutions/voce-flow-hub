@@ -260,7 +260,7 @@ function Leads() {
                 <td className="px-3 py-3 text-right tabular-nums">{l.callAttempts}</td>
                 <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    {(l.status === "OPTED_OUT" || l.status === "EXHAUSTED") && (
+                    {l.status === "EXHAUSTED" && (
                       <button
                         title="Re-enable for calling"
                         onClick={() => resetMutation.mutate(l.id)}

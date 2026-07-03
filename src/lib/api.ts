@@ -384,7 +384,7 @@ export const leadsApi = {
     http.get("/leads/batches").then((r) => r.data),
 
   optOut: (leadId: string): Promise<void> =>
-    http.delete(`/leads/${leadId}`).then((r) => r.data),
+    http.patch(`/leads/${leadId}/opt-out`).then((r) => r.data),
 
   reset: (leadId: string): Promise<void> =>
     http.patch(`/leads/${leadId}/reset`).then((r) => r.data),
