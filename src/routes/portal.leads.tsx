@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { leadsApi } from "@/lib/api";
 import type { LeadStatus } from "@/lib/types";
@@ -14,7 +14,21 @@ import {
   RotateCcw,
   Filter,
   X,
+  Search,
 } from "lucide-react";
+
+const STATUS_OPTIONS: { label: string; value: LeadStatus | "" }[] = [
+  { label: "All statuses", value: "" },
+  { label: "Pending",        value: "PENDING" },
+  { label: "Booked",         value: "BOOKED" },
+  { label: "Callback",       value: "CALLBACK" },
+  { label: "No Answer",      value: "NO_ANSWER" },
+  { label: "Voicemail",      value: "VOICEMAIL" },
+  { label: "Not Interested", value: "NOT_INTERESTED" },
+  { label: "Opted Out",      value: "OPTED_OUT" },
+  { label: "Exhausted",      value: "EXHAUSTED" },
+  { label: "Wrong Number",   value: "WRONG_NUMBER" },
+];
 
 export const Route = createFileRoute("/portal/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -36,7 +50,17 @@ function Leads() {
   } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  // Reset to page 1 whenever the campaign filter changes
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | "">("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input — wait 350ms after last keystroke before firing query
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Reset to page 1 whenever any filter changes
   const [page, setPage] = useState(1);
   const prevCampaignId = useRef(campaignId);
   if (prevCampaignId.current !== campaignId) {
@@ -45,8 +69,14 @@ function Leads() {
   }
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, campaignId],
-    queryFn: () => leadsApi.list({ page, limit: 20, campaignId }),
+    queryKey: ["leads", page, campaignId, statusFilter, debouncedSearch],
+    queryFn: () => leadsApi.list({
+      page,
+      limit: 20,
+      campaignId,
+      status:    statusFilter || undefined,
+      search:    debouncedSearch || undefined,
+    }),
   });
 
   const deleteMutation = useMutation({
@@ -214,9 +244,49 @@ function Leads() {
       </div>
 
       <div className="mt-6 rounded-lg border border-border bg-card overflow-hidden">
-        <div className="p-5 border-b border-border flex items-center justify-between gap-3">
-          <div className="font-semibold">
+        <div className="p-4 border-b border-border flex flex-wrap items-center gap-3">
+          <div className="font-semibold shrink-0">
             Leads <span className="text-muted-foreground font-normal text-sm">({total})</span>
+          </div>
+          <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search name, phone, company…"
+                value={searchInput}
+                onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
+                className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => { setSearchInput(""); setPage(1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ""); setPage(1); }}
+              className="h-8 rounded-md border border-border bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {/* Clear all filters */}
+            {(statusFilter || searchInput) && (
+              <button
+                onClick={() => { setStatusFilter(""); setSearchInput(""); setPage(1); }}
+                className="h-8 px-2.5 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center gap-1"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -242,7 +312,9 @@ function Leads() {
             {!isLoading && leads.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
-                  No leads found. Upload a CSV or Excel file to get started.
+                  {statusFilter || debouncedSearch
+                    ? "No leads match your filters."
+                    : "No leads found. Upload a CSV or Excel file to get started."}
                 </td>
               </tr>
             )}

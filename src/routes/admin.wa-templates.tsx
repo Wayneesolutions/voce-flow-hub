@@ -8,7 +8,7 @@ import { CheckCircle2, XCircle, Loader2, MessageSquare, ChevronRight, AlertCircl
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/wa-templates")({
-  head: () => ({ meta: [{ title: "WA Template Review · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "WA Template Review · Quor Admin" }] }),
   component: WaTemplateReview,
 });
 

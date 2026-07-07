@@ -52,7 +52,7 @@ function NotFoundComponent() {
       </div>
 
       <p className="mt-10 text-xs text-muted-foreground">
-        VoCallM · Wayne E Solutions
+        Quor · Wayne E Solutions
       </p>
     </div>
   );

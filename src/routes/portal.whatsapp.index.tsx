@@ -254,10 +254,10 @@ function WhatsAppContacts() {
             <BarChart3 className="h-8 w-8 mb-3 opacity-40" />
             <p className="font-medium text-sm">No contact lists yet</p>
             <p className="text-xs mt-2 max-w-sm leading-relaxed">
-              Contacts appear here automatically when a VoCallM campaign call ends with outcome{" "}
+              Contacts appear here automatically when a Quor campaign call ends with outcome{" "}
               <strong>BOOKED</strong> — those leads are instantly marked{" "}
               <span className="text-emerald-600 font-medium">OPTED_IN</span> and added to the{" "}
-              <strong>VoCallM Opted-In</strong> list.
+              <strong>Quor Opted-In</strong> list.
             </p>
             <p className="text-xs mt-2 text-muted-foreground opacity-70">
               You can also upload a CSV or XLSX file above to add contacts manually.
@@ -266,7 +266,7 @@ function WhatsAppContacts() {
         ) : (
           <div className="divide-y divide-border">
             {lists.map((list) => {
-              const isAutoList = list.name === "VoCallM Opted-In";
+              const isAutoList = list.name === "Quor Opted-In";
               return (
                 <div key={list.id} className="px-6 py-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
@@ -287,7 +287,7 @@ function WhatsAppContacts() {
                     </p>
                     {isAutoList && (
                       <p className="text-xs text-muted-foreground opacity-70 mt-0.5">
-                        Automatically populated when VoCallM call outcome = BOOKED
+                        Automatically populated when Quor call outcome = BOOKED
                       </p>
                     )}
                     <div className="mt-1">

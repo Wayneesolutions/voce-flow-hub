@@ -92,7 +92,7 @@ function AdminLayout() {
     <>
       <DashboardSidebar
         brand={{
-          name: "VoCallM Admin",
+          name: "Quor Admin",
           subtitle: "Wayne E Solutions",
           mark: <PhoneCall className="h-4 w-4" />,
           markBg: "#2E86DE",

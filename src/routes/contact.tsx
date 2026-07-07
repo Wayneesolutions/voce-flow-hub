@@ -7,11 +7,11 @@ import { contactApi } from "@/lib/api";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Book a VoCallM demo" },
+      { title: "Book a Quor demo" },
       {
         name: "description",
         content:
-          "Talk to the Wayne E Solutions team. Book a 20-minute demo and see VoCallM call a real lead live.",
+          "Talk to the Wayne E Solutions team. Book a 20-minute demo and see Quor call a real lead live.",
       },
     ],
   }),

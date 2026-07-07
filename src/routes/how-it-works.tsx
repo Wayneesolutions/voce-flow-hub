@@ -15,7 +15,7 @@ import {
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
     meta: [
-      { title: "How VoCallM works — from lead to booked meeting" },
+      { title: "How Quor works — from lead to booked meeting" },
       {
         name: "description",
         content:
@@ -74,7 +74,7 @@ function HowItWorks() {
             From a CSV to a booked meeting — without lifting a finger.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground">
-            Here's the full VoCallM flow. Seven steps, fully managed, live in 48 hours.
+            Here's the full Quor flow. Seven steps, fully managed, live in 48 hours.
           </p>
         </div>
       </section>

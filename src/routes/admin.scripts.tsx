@@ -15,7 +15,7 @@ const SCRIPT_LANGUAGES: Record<string, string> = {
 };
 
 export const Route = createFileRoute("/admin/scripts")({
-  head: () => ({ meta: [{ title: "Script Review · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "Script Review · Quor Admin" }] }),
   component: ScriptReview,
 });
 

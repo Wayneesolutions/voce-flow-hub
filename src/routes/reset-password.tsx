@@ -8,7 +8,7 @@ export const Route = createFileRoute("/reset-password")({
   validateSearch: (s: Record<string, unknown>) => ({
     token: typeof s.token === "string" ? s.token : "",
   }),
-  head: () => ({ meta: [{ title: "Reset password · VoCallM" }] }),
+  head: () => ({ meta: [{ title: "Reset password · Quor" }] }),
   component: ResetPasswordPage,
 });
 
@@ -51,7 +51,7 @@ function ResetPasswordPage() {
             <span className="h-9 w-9 rounded-xl bg-primary inline-flex items-center justify-center">
               <PhoneCall className="h-4 w-4 text-primary-foreground" />
             </span>
-            VoCallM
+            Quor
           </Link>
         </div>
 

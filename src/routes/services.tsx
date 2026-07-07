@@ -29,7 +29,7 @@ import {
 export const Route = createFileRoute("/services")({
   head: () => ({
     meta: [
-      { title: "Services · VoCallM — AI voice calling platform" },
+      { title: "Services · Quor — AI voice calling platform" },
       {
         name: "description",
         content:
@@ -139,7 +139,7 @@ function Services() {
             Everything your outbound motion needs — built in.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground leading-relaxed">
-            VoCallM isn't just a dialer. It's a complete AI-powered outbound stack — from lead
+            Quor isn't just a dialer. It's a complete AI-powered outbound stack — from lead
             upload and script review to live calling, meeting booking and CRM sync.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
@@ -217,7 +217,7 @@ function Services() {
                 Built for USA, Canada and Dubai.
               </h2>
               <p className="mt-4 text-muted-foreground leading-relaxed">
-                Each region has its own compliance rules, calling hours and cultural nuances. VoCallM
+                Each region has its own compliance rules, calling hours and cultural nuances. Quor
                 handles all of it — so your agent sounds local and stays legal.
               </p>
               <Link
@@ -254,7 +254,7 @@ function Services() {
               Who we work with
             </h2>
             <p className="mt-3 text-muted-foreground">
-              VoCallM fits any business that relies on outbound calls to book qualified
+              Quor fits any business that relies on outbound calls to book qualified
               conversations.
             </p>
           </div>
@@ -317,7 +317,7 @@ function Services() {
         </div>
       </section>
 
-      {/* ── Why VoCallM ──────────────────────────────────────────────────── */}
+      {/* ── Why Quor ──────────────────────────────────────────────────── */}
       <section className="border-b border-border">
         <div className="container-page py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -326,7 +326,7 @@ function Services() {
               More than software — a managed service.
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Unlike raw AI dialers, VoCallM includes hands-on account management, script review,
+              Unlike raw AI dialers, Quor includes hands-on account management, script review,
               and ongoing performance coaching.
             </p>
           </div>

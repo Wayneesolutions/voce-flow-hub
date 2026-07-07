@@ -8,6 +8,7 @@ export type LeadStatus =
   | "CALLBACK"
   | "VOICEMAIL"
   | "NO_ANSWER"
+  | "WRONG_NUMBER"
   | "OPTED_OUT"
   | "EXHAUSTED";
 

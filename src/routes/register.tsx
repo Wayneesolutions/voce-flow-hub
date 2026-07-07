@@ -20,7 +20,7 @@ export const Route = createFileRoute("/register")({
   validateSearch: (search: Record<string, unknown>) => ({
     plan: typeof search.plan === "string" ? search.plan : undefined,
   }),
-  head: () => ({ meta: [{ title: "Create your account · VoCallM" }] }),
+  head: () => ({ meta: [{ title: "Create your account · Quor" }] }),
   component: RegisterPage,
 });
 
@@ -104,7 +104,7 @@ function RegisterPage() {
               <span className="h-9 w-9 rounded-xl bg-white/20 inline-flex items-center justify-center">
                 <PhoneCall className="h-4 w-4" />
               </span>
-              VoCallM
+              Quor
             </Link>
 
             <div className="mt-auto">
@@ -184,7 +184,7 @@ function RegisterPage() {
                 <span className="h-9 w-9 rounded-xl bg-primary inline-flex items-center justify-center">
                   <PhoneCall className="h-4 w-4 text-primary-foreground" />
                 </span>
-                VoCallM
+                Quor
               </Link>
             </div>
 
@@ -338,7 +338,7 @@ function SuccessState({ email, onGoToDashboard }: { email: string; onGoToDashboa
       </div>
       <h2 className="text-2xl font-bold tracking-tight">Account created!</h2>
       <p className="mt-3 text-muted-foreground leading-relaxed max-w-sm mx-auto">
-        Your VoCallM account is ready. You're logged in as{" "}
+        Your Quor account is ready. You're logged in as{" "}
         <span className="font-medium text-foreground">{email}</span>.
       </p>
 

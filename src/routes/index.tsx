@@ -36,7 +36,7 @@ function Home() {
               sleep.
             </h1>
             <p className="mt-5 text-lg text-muted-foreground max-w-xl">
-              Upload your leads. Approve a script. VoCallM dials, qualifies, handles objections and
+              Upload your leads. Approve a script. Quor dials, qualifies, handles objections and
               books meetings on your calendar — at $0.30 per minute.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -117,7 +117,7 @@ function Home() {
               Everything you need to run an outbound team — minus the team.
             </h2>
             <p className="mt-3 text-muted-foreground">
-              From CSV upload to booked meeting, VoCallM owns the whole motion. You only show up to
+              From CSV upload to booked meeting, Quor owns the whole motion. You only show up to
               the call.
             </p>
           </div>
@@ -143,7 +143,7 @@ function Home() {
               What our clients say
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Real results from businesses using VoCallM across USA, Canada and Dubai.
+              Real results from businesses using Quor across USA, Canada and Dubai.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -255,7 +255,7 @@ function Home() {
               Book a 20-minute demo
             </h3>
             <p className="mt-2 text-primary-foreground/80 max-w-xl">
-              See VoCallM call a real lead live. We'll show you the dashboard, the call flow, and
+              See Quor call a real lead live. We'll show you the dashboard, the call flow, and
               exactly what it would cost for your team.
             </p>
           </div>
@@ -286,7 +286,7 @@ function DemoCard() {
         <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-        <span className="ml-3 text-xs text-muted-foreground">live call · vocallm</span>
+        <span className="ml-3 text-xs text-muted-foreground">live call · quor</span>
       </div>
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">

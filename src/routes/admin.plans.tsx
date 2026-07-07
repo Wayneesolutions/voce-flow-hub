@@ -9,7 +9,7 @@ import { Plus, Trash2, BadgeCheck, Star, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/plans")({
-  head: () => ({ meta: [{ title: "Plans · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "Plans · Quor Admin" }] }),
   component: PlansPage,
 });
 

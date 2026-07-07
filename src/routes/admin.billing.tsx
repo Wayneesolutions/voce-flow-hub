@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/billing")({
-  head: () => ({ meta: [{ title: "Billing · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "Billing · Quor Admin" }] }),
   component: Billing,
 });
 
@@ -257,7 +257,7 @@ function Billing() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `vocallm-billing-${month}.csv`;
+    a.download = `quor-billing-${month}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

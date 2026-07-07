@@ -341,6 +341,7 @@ export const leadsApi = {
     status?: LeadStatus;
     campaignId?: string;
     unassigned?: boolean;
+    search?: string;
   }): Promise<{ leads: Lead[]; total: number; page: number; pages: number }> =>
     http.get("/leads", { params }).then((r) => r.data),
 

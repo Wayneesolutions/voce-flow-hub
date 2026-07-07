@@ -9,7 +9,7 @@ import { ArrowRight, BadgeCheck, X, Loader2 } from "lucide-react";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "VoCallM Pricing — pay per talk minute" },
+      { title: "Quor Pricing — pay per talk minute" },
       {
         name: "description",
         content: "Transparent per-minute pricing. Use the calculator to compare AI vs a human SDR.",

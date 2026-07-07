@@ -7,7 +7,7 @@ export const Route = createFileRoute("/admin/reset-password")({
   validateSearch: (s: Record<string, unknown>) => ({
     token: typeof s.token === "string" ? s.token : "",
   }),
-  head: () => ({ meta: [{ title: "Reset Password · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "Reset Password · Quor Admin" }] }),
   component: ResetPasswordPage,
 });
 
@@ -74,7 +74,7 @@ function ResetPasswordPage() {
             <ShieldCheck className="h-7 w-7" />
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">Admin Portal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Wayne E Solutions · VoCallM</p>
+          <p className="mt-1 text-sm text-muted-foreground">Wayne E Solutions · Quor</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">

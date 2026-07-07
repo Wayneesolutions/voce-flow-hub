@@ -9,7 +9,7 @@ import { Lock, Eye, EyeOff, CheckCircle2, Calendar, Pencil } from "lucide-react"
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/profile")({
-  head: () => ({ meta: [{ title: "My Profile · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "My Profile · Quor Admin" }] }),
   component: ProfilePage,
 });
 

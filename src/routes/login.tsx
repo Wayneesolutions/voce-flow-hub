@@ -27,7 +27,7 @@ export const Route = createFileRoute("/login")({
     const client = store.getState().userAuth.user;
     if (client) throw redirect({ to: "/portal" });
   },
-  head: () => ({ meta: [{ title: "Sign in · VoCallM" }] }),
+  head: () => ({ meta: [{ title: "Sign in · Quor" }] }),
   component: LoginPage,
 });
 
@@ -128,7 +128,7 @@ function LoginPage() {
               <span className="h-9 w-9 rounded-xl bg-white/20 inline-flex items-center justify-center">
                 <PhoneCall className="h-4 w-4" />
               </span>
-              VoCallM
+              Quor
             </Link>
 
             {/* Main copy */}
@@ -192,7 +192,7 @@ function LoginPage() {
                 <span className="h-9 w-9 rounded-xl bg-primary inline-flex items-center justify-center">
                   <PhoneCall className="h-4 w-4 text-primary-foreground" />
                 </span>
-                VoCallM
+                Quor
               </Link>
             </div>
 

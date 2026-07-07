@@ -24,7 +24,7 @@ function MarketingNav() {
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <PhoneCall className="h-4 w-4" />
           </span>
-          <span className="text-base">VoCallM</span>
+          <span className="text-base">Quor</span>
         </Link>
 
         {/* Desktop nav */}
@@ -140,7 +140,7 @@ function MarketingFooter() {
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <PhoneCall className="h-3.5 w-3.5" />
             </span>
-            VoCallM
+            Quor
           </div>
           <p className="mt-3.5 text-muted-foreground leading-relaxed max-w-xs">
             AI sales agents that book qualified meetings on autopilot. Built for businesses across
@@ -191,7 +191,7 @@ function MarketingFooter() {
       {/* Bottom bar */}
       <div className="border-t border-border bg-muted/30">
         <div className="container-page py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>© {year} Wayne E Solutions · VoCallM. All rights reserved.</span>
+          <span>© {year} Wayne E Solutions · Quor. All rights reserved.</span>
           <div className="flex items-center gap-4">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-success" />

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import axios from "axios";
 
 export const Route = createFileRoute("/admin/clients")({
-  head: () => ({ meta: [{ title: "Clients · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "Clients · Quor Admin" }] }),
   component: ClientsPage,
 });
 

@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/numbers")({
-  head: () => ({ meta: [{ title: "Phone Numbers · VoCallM Admin" }] }),
+  head: () => ({ meta: [{ title: "Phone Numbers · Quor Admin" }] }),
   component: NumbersPage,
 });
 
@@ -377,7 +377,7 @@ function NumbersPage() {
               </div>
               <h2 className="font-semibold text-base">Remove {deleteTarget.number}?</h2>
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                This removes the number from VoCallM. It stays in your Twilio/Plivo account — release it there manually if no longer needed.
+                This removes the number from Quor. It stays in your Twilio/Plivo account — release it there manually if no longer needed.
               </p>
             </div>
             <div className="flex border-t border-border">
