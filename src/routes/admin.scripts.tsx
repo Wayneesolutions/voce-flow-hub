@@ -73,6 +73,20 @@ function ScriptReview() {
     onError: (err: Error) => toast.error(`Re-sync failed: ${err.message}`),
   });
 
+  const resyncAllMut = useMutation({
+    mutationFn: () => adminScriptsApi.resyncAll(),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["admin", "scripts", "reviewed"] });
+      if (result.failed === 0) {
+        toast.success(`All ${result.synced} approved script${result.synced !== 1 ? "s" : ""} re-synced to Vapi`);
+      } else {
+        toast.warning(`Re-synced ${result.synced}/${result.total} — ${result.failed} failed. Check console.`);
+        console.error("[resync-all] failures:", result.errors);
+      }
+    },
+    onError: (err: Error) => toast.error(`Re-sync all failed: ${err.message}`),
+  });
+
   return (
     <DashboardShell
       sidebar={null}
@@ -83,6 +97,19 @@ function ScriptReview() {
           : scripts.length === 0
           ? "All scripts reviewed"
           : `${scripts.length} script${scripts.length !== 1 ? "s" : ""} awaiting approval`
+      }
+      actions={
+        <button
+          onClick={() => resyncAllMut.mutate()}
+          disabled={resyncAllMut.isPending}
+          title="Re-push all approved scripts to Vapi (use after rotating ElevenLabs credentials)"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-sm text-muted-foreground hover:text-accent hover:border-accent/50 disabled:opacity-50 transition-colors"
+        >
+          {resyncAllMut.isPending
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <RefreshCw className="h-3.5 w-3.5" />}
+          Re-sync all
+        </button>
       }
     >
       {isLoading ? (

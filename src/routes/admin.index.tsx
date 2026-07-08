@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { adminStatsApi, adminTenantsApi, adminScriptsApi } from "@/lib/api";
+import { PlatformCreditsPanel } from "@/components/admin/PlatformCreditsPanel";
 import type { Tenant, Script } from "@/lib/types";
 import { revenueByMonth } from "@/lib/mock";
 import {
@@ -134,6 +135,15 @@ function AdminDashboard() {
           hint={totalRevenue > 0 ? `${Math.round((totalProfit / totalRevenue) * 100)}% margin` : ""}
           icon={<TrendingUp className="h-4 w-4" />}
         />
+      </div>
+
+      {/* Platform Credits */}
+      <div className="mt-6">
+        <div className="mb-3">
+          <div className="font-semibold">Platform Credits</div>
+          <div className="text-xs text-muted-foreground">ElevenLabs characters · VAPI monthly spend</div>
+        </div>
+        <PlatformCreditsPanel />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">

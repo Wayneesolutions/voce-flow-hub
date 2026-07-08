@@ -267,6 +267,41 @@ export interface AdminNotification {
   link: string;
 }
 
+export interface ElevenLabsCredits {
+  tier: string;
+  charactersUsed: number;
+  charactersLimit: number;
+  charactersRemaining: number;
+  resetDate: string | null;
+  error?: string;
+}
+
+export interface VapiCredits {
+  monthlySpend: number | null;
+  billingPeriod: string;
+  error?: string;
+}
+
+export interface PlatformCredits {
+  elevenlabs: ElevenLabsCredits | null;
+  vapi: VapiCredits | null;
+  fetchedAt: number | null;
+}
+
+export interface AdminAlert {
+  id: string;
+  type: "ELEVENLABS_LOW" | "VAPI_HIGH";
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface AdminAlertsResponse {
+  alerts: AdminAlert[];
+  unreadCount: number;
+}
+
 export interface AdminNotificationsResponse {
   items: AdminNotification[];
   recentBookings: number;

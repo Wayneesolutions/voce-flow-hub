@@ -42,6 +42,7 @@ import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminNumbersRouteImport } from './routes/admin.numbers'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-password'
+import { Route as AdminCreditsRouteImport } from './routes/admin.credits'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as PortalWhatsappIndexRouteImport } from './routes/portal.whatsapp.index'
@@ -220,6 +221,11 @@ const AdminForgotPasswordRoute = AdminForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCreditsRoute = AdminCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminClientsRoute = AdminClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -295,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/credits': typeof AdminCreditsRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/numbers': typeof AdminNumbersRoute
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/credits': typeof AdminCreditsRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/numbers': typeof AdminNumbersRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/credits': typeof AdminCreditsRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/numbers': typeof AdminNumbersRoute
@@ -435,6 +444,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/credits'
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/numbers'
@@ -480,6 +490,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/credits'
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/numbers'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/admin/billing'
     | '/admin/clients'
+    | '/admin/credits'
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/numbers'
@@ -807,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminForgotPasswordRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/credits': {
+      id: '/admin/credits'
+      path: '/credits'
+      fullPath: '/admin/credits'
+      preLoaderRoute: typeof AdminCreditsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/clients': {
       id: '/admin/clients'
       path: '/clients'
@@ -897,6 +916,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
   AdminClientsRoute: typeof AdminClientsRoute
+  AdminCreditsRoute: typeof AdminCreditsRoute
   AdminForgotPasswordRoute: typeof AdminForgotPasswordRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminNumbersRoute: typeof AdminNumbersRoute
@@ -911,6 +931,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
   AdminClientsRoute: AdminClientsRoute,
+  AdminCreditsRoute: AdminCreditsRoute,
   AdminForgotPasswordRoute: AdminForgotPasswordRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminNumbersRoute: AdminNumbersRoute,

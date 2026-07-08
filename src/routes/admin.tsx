@@ -13,10 +13,12 @@ import {
   Tag,
   UserCog,
   MessageSquare,
+  Gauge,
 } from "lucide-react";
 import { DashboardSidebar, type NavItem } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearAdmin } from "@/store/adminAuthSlice";
+import { AlertBell } from "@/components/admin/AlertBell";
 
 const items: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -25,6 +27,7 @@ const items: NavItem[] = [
   { to: "/admin/scripts", label: "Script Review", icon: <FileCheck2 className="h-4 w-4" /> },
   { to: "/admin/wa-templates", label: "WA Templates", icon: <MessageSquare className="h-4 w-4" /> },
   { to: "/admin/plans", label: "Plans", icon: <Tag className="h-4 w-4" /> },
+  { to: "/admin/credits", label: "Platform Credits", icon: <Gauge className="h-4 w-4" /> },
   { to: "/admin/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
   { to: "/admin/profile", label: "My Profile", icon: <UserCog className="h-4 w-4" /> },
 ];
@@ -110,6 +113,7 @@ function AdminLayout() {
               <div className="text-white font-medium text-[13px] truncate">{currentAdmin.name}</div>
               <div className="text-[11px] text-sidebar-foreground truncate">{currentAdmin.email}</div>
             </div>
+            <AlertBell />
             <button
               onClick={() => setLogoutModal(true)}
               title="Sign out"

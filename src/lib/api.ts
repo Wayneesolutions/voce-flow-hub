@@ -158,6 +158,9 @@ export const adminScriptsApi = {
 
   resync: (scriptId: string): Promise<Script> =>
     adminHttp.post(`/admin/scripts/${scriptId}/resync`).then((r) => r.data),
+
+  resyncAll: (): Promise<{ total: number; synced: number; failed: number; errors: { scriptId: string; name: string; error: string }[] }> =>
+    adminHttp.post("/admin/scripts/resync-all").then((r) => r.data),
 };
 
 // ── Admin: Billing ────────────────────────────────────────────────────────────
@@ -175,6 +178,22 @@ export const adminBillingApi = {
 export const adminNotificationsApi = {
   get: (): Promise<import("./types").AdminNotificationsResponse> =>
     adminHttp.get("/admin/notifications").then((r) => r.data),
+};
+
+export const adminPlatformCreditsApi = {
+  get: (): Promise<import("./types").PlatformCredits> =>
+    adminHttp.get("/admin/platform-credits").then((r) => r.data),
+};
+
+export const adminAlertsApi = {
+  list: (): Promise<import("./types").AdminAlertsResponse> =>
+    adminHttp.get("/admin/alerts").then((r) => r.data),
+
+  markRead: (id: string): Promise<{ ok: boolean }> =>
+    adminHttp.patch(`/admin/alerts/${id}/read`).then((r) => r.data),
+
+  markAllRead: (): Promise<{ ok: boolean }> =>
+    adminHttp.post("/admin/alerts/mark-all-read").then((r) => r.data),
 };
 
 // ── Admin: WhatsApp Template Review ──────────────────────────────────────────
