@@ -80,7 +80,7 @@ function Leads() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => leadsApi.optOut(id),
+    mutationFn: (id: string) => leadsApi.hardDelete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
   });
 
@@ -346,16 +346,18 @@ function Leads() {
                         )}
                       </button>
                     )}
-                    {l.status !== "OPTED_OUT" && (
-                      <button
-                        title="Opt out lead"
-                        onClick={() => deleteMutation.mutate(l.id)}
-                        disabled={deleteMutation.isPending}
-                        className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    <button
+                      title="Delete lead"
+                      onClick={() => {
+                        if (window.confirm(`Delete ${l.name}? This cannot be undone.`)) {
+                          deleteMutation.mutate(l.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                      className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </td>
               </tr>

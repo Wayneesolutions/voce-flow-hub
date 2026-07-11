@@ -412,12 +412,12 @@ function CampaignProgress({
               ETA: {formatEta(remaining)} · {CALLS_PER_MINUTE} calls/min
             </span>
           )}
-          {pct >= 100 ? (
+          {c.status === "PAUSED" ? (
+            <span className="ml-auto text-xs text-warning">Paused — resume to continue</span>
+          ) : pct >= 100 ? (
             <span className="ml-auto text-xs text-muted-foreground">
               All leads dialed · use <span className="font-medium">No Answer</span> to retry
             </span>
-          ) : c.status === "PAUSED" ? (
-            <span className="ml-auto text-xs text-warning">Paused — resume to continue</span>
           ) : null}
         </div>
       </div>
@@ -635,9 +635,18 @@ function Campaigns() {
                           <Settings2 className="h-3.5 w-3.5" />
                         </button>
                         {(() => {
-                          const allDialed =
-                            (c._count?.leads ?? 0) > 0 &&
-                            (c._count?.calls ?? 0) >= (c._count?.leads ?? 0);
+                          const totalLeads = c._count?.leads ?? 0;
+                          const totalCalls = c._count?.calls ?? 0;
+                          const maxAttempts = c.maxAttempts ?? 3;
+                          const roundsDone = totalLeads > 0
+                            ? Math.min(maxAttempts, Math.floor(totalCalls / totalLeads))
+                            : 0;
+                          const attemptsLeft = Math.max(0, maxAttempts - roundsDone);
+                          // Only show Retry when at least one full round is done (totalCalls >= totalLeads).
+                          // If paused mid-round (e.g. 30/95 calls), show Resume instead.
+                          const oneRoundComplete = totalLeads > 0 && totalCalls >= totalLeads;
+                          const isRetryState = c.status === "PAUSED" && oneRoundComplete && attemptsLeft > 0;
+
                           if (c.status === "ACTIVE") {
                             return (
                               <button
@@ -650,13 +659,26 @@ function Campaigns() {
                               </button>
                             );
                           }
-                          if (c.status === "COMPLETED" || allDialed) {
+                          if (c.status === "COMPLETED") {
                             return (
                               <span className="h-8 px-3 rounded-md bg-muted text-muted-foreground text-xs inline-flex items-center gap-1 font-medium">
                                 All dialed
                               </span>
                             );
                           }
+                          if (isRetryState) {
+                            return (
+                              <button
+                                onClick={() => startMut.mutate(c.id)}
+                                disabled={startMut.isPending}
+                                className="h-8 px-3 rounded-md bg-success text-white text-xs hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-60"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Retry · {attemptsLeft} left
+                              </button>
+                            );
+                          }
+                          const hasStarted = totalCalls > 0;
                           return (
                             <button
                               onClick={() => startMut.mutate(c.id)}
@@ -664,7 +686,7 @@ function Campaigns() {
                               className="h-8 px-3 rounded-md bg-success text-white text-xs hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-60"
                             >
                               <Play className="h-3.5 w-3.5" />
-                              Start
+                              {hasStarted ? "Resume" : "Start"}
                             </button>
                           );
                         })()}
@@ -852,13 +874,15 @@ function Campaigns() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading batches…
                   </div>
-                ) : batches.length === 0 ? (
+                ) : batches.filter((b) => b.available > 0).length === 0 ? (
                   <div className="mt-1.5 rounded-md border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-warning">
-                    No lead batches found. Upload a CSV/XLSX file first.
+                    {batches.length === 0
+                      ? "No lead batches found. Upload a CSV/XLSX file first."
+                      : "All uploaded batches are fully used. Upload a new CSV/XLSX file to start a new campaign."}
                   </div>
                 ) : (
                   <div className="mt-1.5 grid gap-2">
-                    {batches.map((b) => {
+                    {batches.filter((b) => b.available > 0).map((b) => {
                       const selected = selectedBatchId === b.id;
                       return (
                         <button
