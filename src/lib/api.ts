@@ -468,6 +468,8 @@ export const scriptsApi = {
     agentGender?: string;
     voiceId?: string;
     language?: string;
+    callType?: "sales" | "survey";
+    maxCallDuration?: number;
   }): Promise<Script> =>
     http.post("/scripts", data).then((r) => r.data),
 
@@ -481,6 +483,8 @@ export const scriptsApi = {
     objections?: string;
     voiceId?: string;
     language?: string;
+    callType?: "sales" | "survey";
+    maxCallDuration?: number;
   }): Promise<Script> =>
     http.patch(`/scripts/${scriptId}`, data).then((r) => r.data),
 

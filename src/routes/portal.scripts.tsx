@@ -43,6 +43,7 @@ const defaultForm = {
   name: "",
   agentName: "",
   agentGender: "female",
+  callType: "sales" as "sales" | "survey",
   companyInfo: "",
   servicesInfo: "",
   goalText: "",
@@ -92,6 +93,7 @@ function Scripts() {
         name: form.name,
         agentName: form.agentName,
         agentGender: form.agentGender || "female",
+        callType: form.callType || "sales",
         companyInfo: form.companyInfo,
         servicesInfo: form.servicesInfo,
         goalText: form.goalText,
@@ -117,6 +119,7 @@ function Scripts() {
         name: form.name,
         agentName: form.agentName,
         agentGender: form.agentGender || "female",
+        callType: form.callType || "sales",
         companyInfo: form.companyInfo,
         servicesInfo: form.servicesInfo,
         goalText: form.goalText,
@@ -162,6 +165,7 @@ function Scripts() {
       name: selected.name,
       agentName: selected.agentName,
       agentGender: selected.agentGender ?? "female",
+      callType: selected.callType ?? "sales",
       companyInfo: selected.companyInfo,
       servicesInfo: selected.servicesInfo,
       goalText: selected.goalText,
@@ -342,16 +346,19 @@ function Scripts() {
               )}
 
               <div className="p-5 grid gap-5">
-                <ScriptSection title="Company information">
+                <ScriptSection title="Call type">
+                  <p>{selected.callType === "survey" ? "Survey / Polling (neutral)" : "Sales / Outreach"}</p>
+                </ScriptSection>
+                <ScriptSection title={selected.callType === "survey" ? "Organization" : "Company information"}>
                   <p>{selected.companyInfo}</p>
                 </ScriptSection>
-                <ScriptSection title="Services">
+                <ScriptSection title={selected.callType === "survey" ? "Survey questions / topics" : "Services"}>
                   <p>{selected.servicesInfo}</p>
                 </ScriptSection>
-                <ScriptSection title="Goal">
+                <ScriptSection title={selected.callType === "survey" ? "Survey purpose" : "Goal"}>
                   <p>{selected.goalText}</p>
                 </ScriptSection>
-                {selected.objections && (
+                {selected.objections && selected.callType !== "survey" && (
                   <ScriptSection title="Objection handling">
                     <p className="whitespace-pre-wrap">{selected.objections}</p>
                   </ScriptSection>
@@ -430,6 +437,33 @@ function Scripts() {
             )}
 
             <div className="p-5 grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Call type</label>
+                <div className="mt-1.5 flex gap-2">
+                  {[
+                    { value: "sales" as const,  label: "Sales / Outreach" },
+                    { value: "survey" as const, label: "Survey / Polling (neutral)" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => f("callType", opt.value)}
+                      className={`flex-1 h-10 rounded-md border text-sm font-medium transition-colors ${
+                        form.callType === opt.value
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {form.callType === "survey"
+                    ? "Neutral data-collection mode — one question at a time, no persuasion, no booking tools. Use for election polling, voter feedback, or market research."
+                    : "Standard outbound sales/appointment-setting behavior with objection handling and booking."}
+                </p>
+              </div>
               <div>
                 <label className="text-sm font-medium">Script name</label>
                 <input
@@ -503,48 +537,56 @@ function Scripts() {
                 </p>
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium">Company information</label>
+                <label className="text-sm font-medium">{form.callType === "survey" ? "Organization" : "Company information"}</label>
                 <textarea
                   rows={3}
                   value={form.companyInfo}
                   onChange={(e) => f("companyInfo", e.target.value)}
-                  placeholder="Describe your company, what you do, and your key differentiators…"
+                  placeholder={form.callType === "survey"
+                    ? "Who is conducting this survey/poll — organization name and context…"
+                    : "Describe your company, what you do, and your key differentiators…"}
                   className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium">Services / products</label>
+                <label className="text-sm font-medium">{form.callType === "survey" ? "Survey questions / topics" : "Services / products"}</label>
                 <textarea
                   rows={3}
                   value={form.servicesInfo}
                   onChange={(e) => f("servicesInfo", e.target.value)}
-                  placeholder="List the services or products the agent should be able to discuss…"
+                  placeholder={form.callType === "survey"
+                    ? "List the questions to ask, one per line — asked one at a time, in order…"
+                    : "List the services or products the agent should be able to discuss…"}
                   className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium">Call goal</label>
+                <label className="text-sm font-medium">{form.callType === "survey" ? "Survey purpose" : "Call goal"}</label>
                 <textarea
                   rows={2}
                   value={form.goalText}
                   onChange={(e) => f("goalText", e.target.value)}
-                  placeholder="e.g. Book a 30-minute discovery call with the decision maker…"
+                  placeholder={form.callType === "survey"
+                    ? "e.g. Gather neutral voter feedback on local infrastructure priorities…"
+                    : "e.g. Book a 30-minute discovery call with the decision maker…"}
                   className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <label className="text-sm font-medium">
-                  Objection handling{" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.objections}
-                  onChange={(e) => f("objections", e.target.value)}
-                  placeholder="If prospect says 'we already have a solution', agent should…"
-                  className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
-                />
-              </div>
+              {form.callType !== "survey" && (
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium">
+                    Objection handling{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.objections}
+                    onChange={(e) => f("objections", e.target.value)}
+                    placeholder="If prospect says 'we already have a solution', agent should…"
+                    className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+                  />
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <label className="text-sm font-medium">
                   Voice <span className="text-muted-foreground font-normal">(optional)</span>

@@ -165,19 +165,22 @@ function ScriptReview() {
               </div>
 
               <div className="p-5 grid gap-5">
+                <Section title="Call type">
+                  <p>{active.callType === "survey" ? "Survey / Polling (neutral)" : "Sales / Outreach"}</p>
+                </Section>
                 <Section title="Agent name">
                   <p>{active.agentName}</p>
                 </Section>
-                <Section title="Company information">
+                <Section title={active.callType === "survey" ? "Organization" : "Company information"}>
                   <p>{active.companyInfo}</p>
                 </Section>
-                <Section title="Services">
+                <Section title={active.callType === "survey" ? "Survey questions / topics" : "Services"}>
                   <p>{active.servicesInfo}</p>
                 </Section>
-                <Section title="Goal">
+                <Section title={active.callType === "survey" ? "Survey purpose" : "Goal"}>
                   <p>{active.goalText}</p>
                 </Section>
-                {active.objections && (
+                {active.objections && active.callType !== "survey" && (
                   <Section title="Objection handling">
                     <p className="whitespace-pre-wrap">{active.objections}</p>
                   </Section>
