@@ -44,6 +44,7 @@ const defaultForm = {
   agentName: "",
   agentGender: "female",
   callType: "sales" as "sales" | "survey",
+  callerOrg: "",
   companyInfo: "",
   servicesInfo: "",
   goalText: "",
@@ -94,6 +95,7 @@ function Scripts() {
         agentName: form.agentName,
         agentGender: form.agentGender || "female",
         callType: form.callType || "sales",
+        callerOrg: form.callerOrg || undefined,
         companyInfo: form.companyInfo,
         servicesInfo: form.servicesInfo,
         goalText: form.goalText,
@@ -120,6 +122,7 @@ function Scripts() {
         agentName: form.agentName,
         agentGender: form.agentGender || "female",
         callType: form.callType || "sales",
+        callerOrg: form.callerOrg || undefined,
         companyInfo: form.companyInfo,
         servicesInfo: form.servicesInfo,
         goalText: form.goalText,
@@ -166,6 +169,7 @@ function Scripts() {
       agentName: selected.agentName,
       agentGender: selected.agentGender ?? "female",
       callType: selected.callType ?? "sales",
+      callerOrg: selected.callerOrg ?? "",
       companyInfo: selected.companyInfo,
       servicesInfo: selected.servicesInfo,
       goalText: selected.goalText,
@@ -536,6 +540,23 @@ function Scripts() {
                   Hard cap on call length. 180 = 3 min (recommended). Max 600.
                 </p>
               </div>
+              {form.callType === "survey" && (
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium">
+                    Caller organization <span className="text-muted-foreground font-normal">(used in the opening greeting)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.callerOrg}
+                    onChange={(e) => f("callerOrg", e.target.value)}
+                    placeholder="e.g. भारत भूषण अंशु जी के office"
+                    className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Short name spoken in the opening: "नमस्ते! मैं [agent] — [caller org] की तरफ से…"
+                  </p>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <label className="text-sm font-medium">{form.callType === "survey" ? "Organization" : "Company information"}</label>
                 <textarea
@@ -572,21 +593,26 @@ function Scripts() {
                   className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                 />
               </div>
-              {form.callType !== "survey" && (
-                <div className="sm:col-span-2">
-                  <label className="text-sm font-medium">
-                    Objection handling{" "}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.objections}
-                    onChange={(e) => f("objections", e.target.value)}
-                    placeholder="If prospect says 'we already have a solution', agent should…"
-                    className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
-                  />
-                </div>
-              )}
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">
+                  {form.callType === "survey" ? "Common objections / responses" : "Objection handling"}{" "}
+                  <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.objections}
+                  onChange={(e) => f("objections", e.target.value)}
+                  placeholder={form.callType === "survey"
+                    ? "e.g. If they ask 'Is this a political call?' → say 'No, this is an independent neutral feedback survey.' If they say 'I don't answer surveys' → end the call politely."
+                    : "e.g. If prospect says 'we already have a solution' → acknowledge and ask what gaps they still have…"}
+                  className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {form.callType === "survey"
+                    ? "How the agent should respond to resistance, skepticism, or sensitive questions about the survey."
+                    : "How the agent should respond to common pushbacks or objections during the call."}
+                </p>
+              </div>
               <div className="sm:col-span-2">
                 <label className="text-sm font-medium">
                   Voice <span className="text-muted-foreground font-normal">(optional)</span>

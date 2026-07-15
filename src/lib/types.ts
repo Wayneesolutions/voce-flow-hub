@@ -87,6 +87,7 @@ export interface Script {
   voiceId?: string;
   language?: string;
   callType?: "sales" | "survey";
+  callerOrg?: string;
   maxCallDuration?: number;
   status: ScriptStatus;
   reviewNote?: string;
