@@ -423,7 +423,7 @@ function ClientHeader() {
   const initials = client?.name
     ?.split(" ").map((s) => s[0]).join("").toUpperCase().slice(0, 2) ?? "ME";
 
-  const accent = tenant?.primaryColor ?? "#1a2b4a";
+  const accent = tenant?.primaryColor ?? "#7c3aed";
 
   return (
     <div className="flex items-center gap-2">
