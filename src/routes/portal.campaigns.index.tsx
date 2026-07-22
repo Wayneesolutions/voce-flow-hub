@@ -5,7 +5,7 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { campaignsApi, scriptsApi, leadsApi } from "@/lib/api";
 import type { LeadBatch } from "@/lib/api";
 import type { Campaign, Script } from "@/lib/types";
-import { Plus, Play, Pause, X, Loader2, Settings2, List, PhoneOff, Phone, RotateCcw, AlertTriangle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
+import { Plus, Play, Pause, X, Loader2, Settings2, List, PhoneOff, Phone, RotateCcw, AlertTriangle, CheckCircle2, Clock, CalendarDays, Voicemail, PhoneCall } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/campaigns/")({
@@ -62,6 +62,146 @@ function formatRelative(iso: string | null) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// ── Callback Modal ──────────────────────────────────────────────────────────
+
+function CallbackModal({ campaign, onClose }: { campaign: Campaign; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [retryResult, setRetryResult] = useState<{ reset: number; queued: boolean; campaignStatus: string } | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["campaign-callbacks", campaign.id],
+    queryFn: () => campaignsApi.callbacks(campaign.id),
+  });
+
+  const retryMut = useMutation({
+    mutationFn: () => campaignsApi.retryOutcome(campaign.id, "CALLBACK"),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign-callbacks", campaign.id] });
+      setRetryResult(result);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const leads = data?.leads ?? [];
+  const total = data?.total ?? 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="w-full max-w-2xl rounded-lg border border-border bg-card shadow-2xl flex flex-col max-h-[85vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <div className="font-semibold flex items-center gap-2">
+              <PhoneCall className="h-4 w-4 text-blue-600" />
+              Callback Leads
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">{campaign.name}</div>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-secondary">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {retryResult ? (
+          <>
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 py-12 text-center">
+              <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-7 w-7 text-success" />
+              </div>
+              <div>
+                <div className="text-xl font-semibold">
+                  {retryResult.reset} lead{retryResult.reset !== 1 ? "s" : ""} queued for callback
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {retryResult.queued
+                    ? "The AI dialer has been triggered and will start calling shortly."
+                    : "Leads have been reset. Start or resume the campaign to begin dialing."}
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-border flex justify-end">
+              <button onClick={onClose} className="h-9 px-6 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+                Done
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Stats bar */}
+            <div className="flex items-center gap-5 px-5 py-3 border-b border-border bg-muted/30 text-sm">
+              <div>
+                <span className="font-semibold tabular-nums">{total}</span>
+                <span className="text-muted-foreground ml-1.5">requested a callback</span>
+              </div>
+            </div>
+
+            {/* Info bar */}
+            <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border bg-blue-500/5 text-xs text-muted-foreground">
+              <PhoneCall className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+              <span>These leads asked to be called back during a previous conversation.</span>
+            </div>
+
+            {/* Lead table */}
+            <div className="flex-1 overflow-y-auto">
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading leads…
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="p-12 text-center text-sm text-muted-foreground">
+                  No callback leads for this campaign
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left font-medium px-5 py-2.5">Lead</th>
+                      <th className="text-left font-medium px-3 py-2.5">Phone</th>
+                      <th className="text-center font-medium px-3 py-2.5">Attempts</th>
+                      <th className="text-right font-medium px-5 py-2.5">Last Called</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.map((lead) => (
+                      <tr key={lead.id} className="border-t border-border hover:bg-muted/20">
+                        <td className="px-5 py-3">
+                          <div className="font-medium">{lead.name}</div>
+                          {lead.company && <div className="text-xs text-muted-foreground">{lead.company}</div>}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground tabular-nums text-xs">{lead.phone}</td>
+                        <td className="px-3 py-3 text-center tabular-nums font-medium">{lead.callAttempts}</td>
+                        <td className="px-5 py-3 text-right text-xs text-muted-foreground">{formatRelative(lead.lastCalledAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Action bar */}
+            <div className="flex items-center justify-between gap-4 px-5 py-4 border-t border-border">
+              <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                Calling these leads will reset their status to PENDING and dial them within the campaign's calling window.
+              </p>
+              <button
+                onClick={() => retryMut.mutate()}
+                disabled={retryMut.isPending || total === 0}
+                className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+              >
+                {retryMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Phone className="h-3.5 w-3.5" />}
+                Call them now ({total})
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── No Answer Modal ─────────────────────────────────────────────────────────
@@ -190,18 +330,28 @@ function NoAnswerModal({ campaign, onClose }: { campaign: Campaign; onClose: () 
             <div className="flex flex-wrap items-center gap-5 px-5 py-3 border-b border-border bg-muted/30 text-sm">
               <div>
                 <span className="font-semibold tabular-nums">{total}</span>
-                <span className="text-muted-foreground ml-1.5">total</span>
+                <span className="text-muted-foreground ml-1.5">didn't pick up</span>
               </div>
-              <div className="w-px h-4 bg-border" />
-              <div>
-                <span className="font-semibold tabular-nums text-success">{retryableCount}</span>
-                <span className="text-muted-foreground ml-1.5">retryable</span>
-              </div>
-              <div className="w-px h-4 bg-border" />
-              <div>
-                <span className="font-semibold tabular-nums text-muted-foreground">{exhaustedCount}</span>
-                <span className="text-muted-foreground ml-1.5">exhausted (all {maxAttempts} attempts used)</span>
-              </div>
+              {retryableCount > 0 && (
+                <>
+                  <div className="w-px h-4 bg-border" />
+                  <div>
+                    <span className="font-semibold tabular-nums text-success">{retryableCount}</span>
+                    <span className="text-muted-foreground ml-1.5">have attempts left</span>
+                  </div>
+                </>
+              )}
+              {exhaustedCount > 0 && (
+                <>
+                  <div className="w-px h-4 bg-border" />
+                  <div>
+                    <span className="font-semibold tabular-nums text-muted-foreground">{exhaustedCount}</span>
+                    <span className="text-muted-foreground ml-1.5">
+                      reached {maxAttempts}-call limit
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Campaign schedule info bar */}
@@ -235,7 +385,6 @@ function NoAnswerModal({ campaign, onClose }: { campaign: Campaign; onClose: () 
                       <th className="text-left font-medium px-3 py-2.5">Phone</th>
                       <th className="text-center font-medium px-3 py-2.5">Attempts</th>
                       <th className="text-right font-medium px-5 py-2.5">Last Called</th>
-                      <th className="text-center font-medium px-3 py-2.5">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -261,17 +410,6 @@ function NoAnswerModal({ campaign, onClose }: { campaign: Campaign; onClose: () 
                           <td className="px-5 py-3 text-right text-xs text-muted-foreground">
                             {formatRelative(lead.lastCalledAt)}
                           </td>
-                          <td className="px-3 py-3 text-center">
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                isExhausted
-                                  ? "bg-destructive/10 text-destructive"
-                                  : "bg-success/10 text-success"
-                              }`}
-                            >
-                              {isExhausted ? "Exhausted" : "Retryable"}
-                            </span>
-                          </td>
                         </tr>
                       );
                     })}
@@ -283,37 +421,62 @@ function NoAnswerModal({ campaign, onClose }: { campaign: Campaign; onClose: () 
             {/* Action bar */}
             <div className="flex items-center justify-between gap-4 px-5 py-4 border-t border-border">
               <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-                <strong>Retryable</strong> — resets to PENDING, dials within the calling window above.<br />
-                <strong>Exhausted</strong> — resets attempt counter to 0 for a fresh start.
+                {retryableCount > 0 && exhaustedCount > 0 ? (
+                  <>Calling again only those with attempts left, or reset all and redial from scratch.</>
+                ) : retryableCount > 0 ? (
+                  <>These leads still have attempts left — calling again within the schedule above.</>
+                ) : (
+                  <>All {exhaustedCount} leads reached the {maxAttempts}-call limit.
+                  Retrying will reset and redial them.</>
+                )}
               </p>
               <div className="flex gap-2 shrink-0">
-                {exhaustedCount > 0 && (
+                {/* Only leads with attempts left */}
+                {retryableCount > 0 && exhaustedCount === 0 && (
                   <button
-                    onClick={() => retryMut.mutate(true)}
-                    disabled={retryMut.isPending || total === 0}
-                    title="Resets attempt counter to 0 so exhausted leads get fresh tries"
-                    className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary disabled:opacity-60 inline-flex items-center gap-1.5"
+                    onClick={() => retryMut.mutate(false)}
+                    disabled={retryMut.isPending}
+                    className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-1.5"
                   >
-                    {retryMut.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    )}
-                    Retry all incl. exhausted ({total})
+                    {retryMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Phone className="h-3.5 w-3.5" />}
+                    Call again ({retryableCount})
                   </button>
                 )}
-                <button
-                  onClick={() => retryMut.mutate(false)}
-                  disabled={retryMut.isPending || retryableCount === 0}
-                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-1.5"
-                >
-                  {retryMut.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Phone className="h-3.5 w-3.5" />
-                  )}
-                  Retry retryable ({retryableCount})
-                </button>
+
+                {/* All at limit — make retry the primary action */}
+                {exhaustedCount > 0 && retryableCount === 0 && (
+                  <button
+                    onClick={() => retryMut.mutate(true)}
+                    disabled={retryMut.isPending}
+                    className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+                  >
+                    {retryMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                    Reset & call again ({exhaustedCount})
+                  </button>
+                )}
+
+                {/* Mix — show both options */}
+                {retryableCount > 0 && exhaustedCount > 0 && (
+                  <>
+                    <button
+                      onClick={() => retryMut.mutate(true)}
+                      disabled={retryMut.isPending}
+                      title="Resets call limit and redials all no-answer leads"
+                      className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary disabled:opacity-60 inline-flex items-center gap-1.5"
+                    >
+                      {retryMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                      Reset & call all ({total})
+                    </button>
+                    <button
+                      onClick={() => retryMut.mutate(false)}
+                      disabled={retryMut.isPending}
+                      className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+                    >
+                      {retryMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Phone className="h-3.5 w-3.5" />}
+                      Call again ({retryableCount})
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </>
@@ -329,11 +492,14 @@ function CampaignProgress({
   c,
   onNoAnswerClick,
   isNoAnswerOpen,
+  onCallbackClick,
 }: {
   c: Campaign;
   onNoAnswerClick: () => void;
   isNoAnswerOpen: boolean;
+  onCallbackClick: () => void;
 }) {
+  const qc         = useQueryClient();
   const totalLeads = c._count?.leads ?? 0;
   const totalCalls = c._count?.calls ?? 0;
   const pct        = totalLeads > 0 ? Math.min(100, Math.round((totalCalls / totalLeads) * 100)) : 0;
@@ -344,6 +510,15 @@ function CampaignProgress({
   const noAnswer   = outcomes.NO_ANSWER      ?? 0;
   const notInt     = outcomes.NOT_INTERESTED ?? 0;
   const callback   = outcomes.CALLBACK       ?? 0;
+
+  const retryVoicemailMut = useMutation({
+    mutationFn: () => campaignsApi.retryOutcome(c.id, "VOICEMAIL"),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      toast.success(`${result.reset} voicemail lead${result.reset !== 1 ? "s" : ""} queued for retry`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   return (
     <td colSpan={7} className="px-5 pb-3 pt-0">
@@ -373,14 +548,25 @@ function CampaignProgress({
             </span>
           )}
           {callback > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 text-accent-foreground text-xs px-2 py-0.5 font-medium">
+            <button
+              onClick={onCallbackClick}
+              title="Click to view and retry callback leads"
+              className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 text-blue-700 border border-blue-500/40 text-xs px-2.5 py-0.5 font-semibold hover:bg-blue-500/30 transition-colors"
+            >
+              <PhoneCall className="h-3 w-3" />
               Callback: {callback}
-            </span>
+            </button>
           )}
           {voicemail > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
+            <button
+              onClick={() => retryVoicemailMut.mutate()}
+              disabled={retryVoicemailMut.isPending}
+              title="Click to retry voicemail leads"
+              className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 text-purple-700 border border-purple-500/30 text-xs px-2.5 py-0.5 font-semibold hover:bg-purple-500/25 transition-colors disabled:opacity-60"
+            >
+              {retryVoicemailMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Voicemail className="h-3 w-3" />}
               Voicemail: {voicemail}
-            </span>
+            </button>
           )}
 
           {noAnswer > 0 && (
@@ -432,10 +618,11 @@ function Campaigns() {
   const [creating, setCreating]                 = useState(false);
   const [form, setForm]                         = useState(defaultForm);
   const [editing, setEditing]                   = useState<Campaign | null>(null);
-  const [editForm, setEditForm]                 = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24" });
+  const [editForm, setEditForm]                 = useState({ callFromHour: "9", callToHour: "17", timezone: "America/New_York", callDays: "MON,TUE,WED,THU,FRI", maxAttempts: "3", retryAfterHours: "24", scriptId: "" });
   const [selectedBatchId, setSelectedBatchId]   = useState<string | null>(null);
   const [batchLimit, setBatchLimit]             = useState<string>("");
-  const [noAnswerCampaign, setNoAnswerCampaign] = useState<Campaign | null>(null);
+  const [noAnswerCampaign, setNoAnswerCampaign]   = useState<Campaign | null>(null);
+  const [callbackCampaign, setCallbackCampaign]   = useState<Campaign | null>(null);
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -530,6 +717,7 @@ function Campaigns() {
       callDays:        c.callDays,
       maxAttempts:     String(c.maxAttempts),
       retryAfterHours: String(c.retryAfterHours),
+      scriptId:        c.scriptId ?? "",
     });
     setEditing(c);
   };
@@ -537,7 +725,9 @@ function Campaigns() {
   const ef = (key: keyof typeof editForm, val: string) => setEditForm((p) => ({ ...p, [key]: val }));
   const f  = (key: keyof typeof form, val: string | boolean) => setForm((p) => ({ ...p, [key]: val }));
 
-  const showProgress = (c: Campaign) => c.status === "ACTIVE" || c.status === "PAUSED";
+  const showProgress = (c: Campaign) =>
+    c.status === "ACTIVE" || c.status === "PAUSED" ||
+    (c.status === "COMPLETED" && (c.outcomeCounts?.NO_ANSWER ?? 0) > 0);
 
   return (
     <DashboardShell
@@ -700,6 +890,7 @@ function Campaigns() {
                         c={c}
                         onNoAnswerClick={() => setNoAnswerCampaign(c)}
                         isNoAnswerOpen={noAnswerCampaign?.id === c.id}
+                        onCallbackClick={() => setCallbackCampaign(c)}
                       />
                     </tr>
                   )}
@@ -718,6 +909,14 @@ function Campaigns() {
         />
       )}
 
+      {/* Callback Modal */}
+      {callbackCampaign && (
+        <CallbackModal
+          campaign={callbackCampaign}
+          onClose={() => setCallbackCampaign(null)}
+        />
+      )}
+
       {/* Edit schedule modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -729,6 +928,28 @@ function Campaigns() {
               </button>
             </div>
             <div className="p-5 grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Script</label>
+                {liveScripts.length === 0 ? (
+                  <p className="mt-1.5 text-sm text-warning">No approved scripts available.</p>
+                ) : (
+                  <select
+                    value={editForm.scriptId}
+                    onChange={(e) => ef("scriptId", e.target.value)}
+                    className="mt-1.5 w-full h-10 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  >
+                    <option value="">— keep current —</option>
+                    {liveScripts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.agentName})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {editForm.scriptId && editForm.scriptId !== (editing?.scriptId ?? "") && (
+                  <p className="mt-1 text-xs text-warning">Script will be changed on save.</p>
+                )}
+              </div>
               <div>
                 <label className="text-sm font-medium">Call from (hour)</label>
                 <input
@@ -814,6 +1035,7 @@ function Campaigns() {
                   callDays:        editForm.callDays,
                   maxAttempts:     parseInt(editForm.maxAttempts),
                   retryAfterHours: parseInt(editForm.retryAfterHours),
+                  ...(editForm.scriptId ? { scriptId: editForm.scriptId } : {}),
                 })}
                 disabled={updateMut.isPending}
                 className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60"

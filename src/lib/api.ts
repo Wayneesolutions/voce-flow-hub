@@ -540,6 +540,11 @@ export const campaignsApi = {
   pause: (campaignId: string): Promise<{ message: string }> =>
     http.post(`/campaigns/${campaignId}/pause`).then((r) => r.data),
 
+  callbacks: (campaignId: string): Promise<{
+    leads: { id: string; name: string; phone: string; company?: string | null; callAttempts: number; lastCalledAt: string | null }[];
+    total: number;
+  }> => http.get(`/campaigns/${campaignId}/callbacks`).then((r) => r.data),
+
   noAnswers: (campaignId: string): Promise<{
     leads: { id: string; name: string; phone: string; company?: string | null; callAttempts: number; lastCalledAt: string | null; status: string }[];
     maxAttempts: number;
@@ -553,6 +558,12 @@ export const campaignsApi = {
     queued: boolean;
     campaignStatus: string;
   }> => http.post(`/campaigns/${campaignId}/retry-no-answers`, { includeExhausted }).then((r) => r.data),
+
+  retryOutcome: (campaignId: string, outcome: "VOICEMAIL" | "CALLBACK"): Promise<{
+    reset: number;
+    queued: boolean;
+    campaignStatus: string;
+  }> => http.post(`/campaigns/${campaignId}/retry-outcome`, { outcome }).then((r) => r.data),
 };
 
 // ── Client portal: Meetings ───────────────────────────────────────────────────
