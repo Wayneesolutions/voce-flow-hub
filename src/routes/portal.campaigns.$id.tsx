@@ -543,21 +543,16 @@ function CallDetailPanel({ call, loading }: { call: Call; loading: boolean }) {
       {call.recordingUrl && (
         <div className="p-5 border-b border-border">
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Recording</div>
-          {detail?.recordingUrl
-            ? <>
-                <audio controls src={detail.recordingUrl} className="w-full h-9" preload="metadata" />
-                <a
-                  href={detail.recordingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download recording
-                </a>
-              </>
-            : <div className="text-xs text-muted-foreground">Loading recording…</div>
-          }
+          <audio controls src={call.recordingUrl} className="w-full h-9" preload="metadata" />
+          <a
+            href={call.recordingUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download recording
+          </a>
         </div>
       )}
 
