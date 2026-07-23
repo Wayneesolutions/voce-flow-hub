@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { campaignsApi, callsApi } from "@/lib/api";
 import type { Campaign, Call } from "@/lib/types";
@@ -543,11 +543,11 @@ function CallDetailPanel({ call, loading }: { call: Call; loading: boolean }) {
       {call.recordingUrl && (
         <div className="p-5 border-b border-border">
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Recording</div>
-          {recordingUrl
+          {detail?.recordingUrl
             ? <>
-                <audio controls src={recordingUrl} className="w-full h-9" preload="metadata" />
+                <audio controls src={detail.recordingUrl} className="w-full h-9" preload="metadata" />
                 <a
-                  href={recordingUrl}
+                  href={detail.recordingUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -596,7 +596,6 @@ function CampaignDetail() {
   const [outcomeFilter, setOutcomeFilter] = useState<string>("");
   const [showNoAnswerModal, setShowNoAnswerModal] = useState(false);
   const [showCallbackModal, setShowCallbackModal] = useState(false);
-  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
 
   const { data: campaigns = [] } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
@@ -620,13 +619,6 @@ function CampaignDetail() {
   const totalPages = Math.ceil(total / LIMIT) || 1;
 
   const selected = calls.find((c) => c.id === selectedId) ?? calls[0] ?? null;
-
-  useEffect(() => {
-    setRecordingUrl(null);
-    if (selected?.recordingUrl && selected?.id) {
-      callsApi.getRecordingUrl(selected.id).then(setRecordingUrl);
-    }
-  }, [selected?.id]);
 
   const { data: detail, isLoading: detailLoading } = useQuery({
     queryKey: ["call-detail", selected?.id],
