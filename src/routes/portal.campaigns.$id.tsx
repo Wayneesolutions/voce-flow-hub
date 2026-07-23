@@ -20,6 +20,7 @@ const LIMIT = 25;
 
 const OUTCOME_STYLES: Record<string, string> = {
   BOOKED:         "bg-success/10 text-success",
+  COMPLETED:      "bg-success/10 text-success",
   NOT_INTERESTED: "bg-destructive/10 text-destructive",
   VOICEMAIL:      "bg-blue-500/10 text-blue-500",
   NO_ANSWER:      "bg-muted text-muted-foreground",
@@ -30,6 +31,7 @@ const OUTCOME_STYLES: Record<string, string> = {
 
 const OUTCOME_LABELS: Record<string, string> = {
   BOOKED:         "Booked",
+  COMPLETED:      "Completed",
   NOT_INTERESTED: "Not Interested",
   VOICEMAIL:      "Voicemail",
   NO_ANSWER:      "No Answer",
