@@ -432,6 +432,9 @@ export const callsApi = {
 
   get: (callId: string): Promise<Call> =>
     http.get(`/calls/${callId}`).then((r) => r.data),
+
+  getRecordingUrl: (callId: string): Promise<string | null> =>
+    http.get(`/calls/${callId}/recording`).then((r) => r.data?.url ?? null).catch(() => null),
 };
 
 // ── Client portal: Voices ─────────────────────────────────────────────────────

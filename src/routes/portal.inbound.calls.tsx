@@ -73,7 +73,7 @@ function SidePanel({ call, onClose }: { call: InboundCall; onClose: () => void }
         {call.recordingUrl && (
           <div>
             <h4 className="text-xs font-medium text-muted-foreground mb-1.5">Recording</h4>
-            <audio controls src={`/api/calls/${call.id}/recording`} className="w-full h-10" />
+            <audio controls src={call.recordingUrl} className="w-full h-10" />
           </div>
         )}
 
