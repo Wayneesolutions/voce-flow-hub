@@ -7,7 +7,7 @@ import { adminNumbersApi, adminTenantsApi, type AvailableNumber } from "@/lib/ap
 import type { TenantPhone } from "@/lib/types";
 import {
   Phone, Search, Plus, Trash2, CheckCircle2, AlertTriangle,
-  Loader2, X, RefreshCw, Info,
+  Loader2, X, RefreshCw, Info, Pencil, PhoneForwarded,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +62,9 @@ function NumbersPage() {
   const [searching, setSearching]   = useState(false);
   const [buying, setBuying]         = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TenantPhone | null>(null);
+  const [editTarget, setEditTarget]     = useState<TenantPhone | null>(null);
+  const [editIsCallback, setEditIsCallback] = useState(false);
+  const [editRate, setEditRate]         = useState("");
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminNumbersApi.remove(id),
@@ -72,6 +75,26 @@ function NumbersPage() {
     },
     onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to remove number"),
   });
+
+  const updateMut = useMutation({
+    mutationFn: (vars: { tenantId: string; numberId: string; isCallbackNumber: boolean; telephonyCostPerMinute: number | null }) =>
+      adminNumbersApi.update(vars.tenantId, vars.numberId, {
+        isCallbackNumber: vars.isCallbackNumber,
+        telephonyCostPerMinute: vars.telephonyCostPerMinute,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "numbers"] });
+      toast.success("Number updated");
+      setEditTarget(null);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to update number"),
+  });
+
+  const openEdit = (n: TenantPhone) => {
+    setEditIsCallback(n.isCallbackNumber);
+    setEditRate(n.telephonyCostPerMinute != null ? String(n.telephonyCostPerMinute) : "");
+    setEditTarget(n);
+  };
 
   const handleSearch = async () => {
     setSearching(true);
@@ -165,6 +188,8 @@ function NumbersPage() {
                 <th className="px-4 py-3 text-left">Provider</th>
                 <th className="px-4 py-3 text-left">Vapi</th>
                 <th className="px-4 py-3 text-left">Default</th>
+                <th className="px-4 py-3 text-left">Callback #</th>
+                <th className="px-4 py-3 text-left">Cost/min</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -192,12 +217,31 @@ function NumbersPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => setDeleteTarget(n)}
-                      className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {n.isCallbackNumber && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 text-accent text-[11px] font-medium px-2 py-0.5">
+                        <PhoneForwarded className="h-3 w-3" /> Callback
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground tabular-nums">
+                    {n.telephonyCostPerMinute != null ? `$${n.telephonyCostPerMinute.toFixed(4)}` : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => openEdit(n)}
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted transition-colors"
+                        title="Edit callback / cost settings"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(n)}
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -393,6 +437,77 @@ function NumbersPage() {
                 className="flex-1 h-12 text-sm font-semibold text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-60"
               >
                 {deleteMut.isPending ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Edit callback / cost settings */}
+      {editTarget && createPortal(
+        <div
+          className="fixed inset-0 z-[600] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)" }}
+        >
+          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="font-semibold font-mono text-sm">{editTarget.number}</h2>
+              <button onClick={() => setEditTarget(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <label className="flex items-start gap-2.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editIsCallback}
+                  onChange={(e) => setEditIsCallback(e.target.checked)}
+                  className="h-4 w-4 mt-0.5 rounded border-input accent-primary"
+                />
+                <span>
+                  <span className="font-medium block">Use for callback follow-ups</span>
+                  <span className="text-xs text-muted-foreground">
+                    Genuine callback leads (real requested time) for {editTarget.country} dial from this number
+                    instead of the default cold-outreach number. Only one per country — setting this clears it
+                    from any other {editTarget.country} number.
+                  </span>
+                </span>
+              </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Telephony cost per minute (USD)</label>
+                <input
+                  value={editRate}
+                  onChange={(e) => setEditRate(e.target.value)}
+                  placeholder="e.g. 0.0055"
+                  className={INPUT}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Real per-minute rate from your Twilio/Plivo account for this number. Used for cost reporting only —
+                  leave blank to fall back to the platform default.
+                </p>
+              </div>
+            </div>
+            <div className="flex border-t border-border">
+              <button
+                onClick={() => setEditTarget(null)}
+                className="flex-1 h-12 text-sm font-medium hover:bg-secondary transition-colors border-r border-border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  updateMut.mutate({
+                    tenantId: editTarget.tenantId,
+                    numberId: editTarget.id,
+                    isCallbackNumber: editIsCallback,
+                    telephonyCostPerMinute: editRate.trim() === "" ? null : parseFloat(editRate),
+                  })
+                }
+                disabled={updateMut.isPending}
+                className="flex-1 h-12 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-60"
+              >
+                {updateMut.isPending ? "Saving…" : "Save"}
               </button>
             </div>
           </div>

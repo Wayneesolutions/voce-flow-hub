@@ -29,6 +29,7 @@ import { Route as PortalMeetingsRouteImport } from './routes/portal.meetings'
 import { Route as PortalLiveCallsRouteImport } from './routes/portal.live-calls'
 import { Route as PortalLeadsRouteImport } from './routes/portal.leads'
 import { Route as PortalInboundRouteImport } from './routes/portal.inbound'
+import { Route as PortalCostsRouteImport } from './routes/portal.costs'
 import { Route as PortalCampaignsRouteImport } from './routes/portal.campaigns'
 import { Route as PortalCallsRouteImport } from './routes/portal.calls'
 import { Route as PortalCallbacksRouteImport } from './routes/portal.callbacks'
@@ -154,6 +155,11 @@ const PortalLeadsRoute = PortalLeadsRouteImport.update({
 const PortalInboundRoute = PortalInboundRouteImport.update({
   id: '/inbound',
   path: '/inbound',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalCostsRoute = PortalCostsRouteImport.update({
+  id: '/costs',
+  path: '/costs',
   getParentRoute: () => PortalRoute,
 } as any)
 const PortalCampaignsRoute = PortalCampaignsRouteImport.update({
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRouteWithChildren
+  '/portal/costs': typeof PortalCostsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByTo {
   '/portal/billing': typeof PortalBillingRoute
   '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
+  '/portal/costs': typeof PortalCostsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/portal/callbacks': typeof PortalCallbacksRoute
   '/portal/calls': typeof PortalCallsRoute
   '/portal/campaigns': typeof PortalCampaignsRouteWithChildren
+  '/portal/costs': typeof PortalCostsRoute
   '/portal/inbound': typeof PortalInboundRouteWithChildren
   '/portal/leads': typeof PortalLeadsRoute
   '/portal/live-calls': typeof PortalLiveCallsRoute
@@ -458,6 +467,7 @@ export interface FileRouteTypes {
     | '/portal/callbacks'
     | '/portal/calls'
     | '/portal/campaigns'
+    | '/portal/costs'
     | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
@@ -503,6 +513,7 @@ export interface FileRouteTypes {
     | '/portal/billing'
     | '/portal/callbacks'
     | '/portal/calls'
+    | '/portal/costs'
     | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
@@ -550,6 +561,7 @@ export interface FileRouteTypes {
     | '/portal/callbacks'
     | '/portal/calls'
     | '/portal/campaigns'
+    | '/portal/costs'
     | '/portal/inbound'
     | '/portal/leads'
     | '/portal/live-calls'
@@ -726,6 +738,13 @@ declare module '@tanstack/react-router' {
       path: '/inbound'
       fullPath: '/portal/inbound'
       preLoaderRoute: typeof PortalInboundRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/costs': {
+      id: '/portal/costs'
+      path: '/costs'
+      fullPath: '/portal/costs'
+      preLoaderRoute: typeof PortalCostsRouteImport
       parentRoute: typeof PortalRoute
     }
     '/portal/campaigns': {
@@ -1000,6 +1019,7 @@ interface PortalRouteChildren {
   PortalCallbacksRoute: typeof PortalCallbacksRoute
   PortalCallsRoute: typeof PortalCallsRoute
   PortalCampaignsRoute: typeof PortalCampaignsRouteWithChildren
+  PortalCostsRoute: typeof PortalCostsRoute
   PortalInboundRoute: typeof PortalInboundRouteWithChildren
   PortalLeadsRoute: typeof PortalLeadsRoute
   PortalLiveCallsRoute: typeof PortalLiveCallsRoute
@@ -1016,6 +1036,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalCallbacksRoute: PortalCallbacksRoute,
   PortalCallsRoute: PortalCallsRoute,
   PortalCampaignsRoute: PortalCampaignsRouteWithChildren,
+  PortalCostsRoute: PortalCostsRoute,
   PortalInboundRoute: PortalInboundRouteWithChildren,
   PortalLeadsRoute: PortalLeadsRoute,
   PortalLiveCallsRoute: PortalLiveCallsRoute,

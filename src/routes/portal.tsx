@@ -23,6 +23,7 @@ import {
   MessageCircle,
   Send,
   MessageSquare,
+  Wallet,
 } from "lucide-react";
 import { DashboardSidebar, type NavEntry } from "@/components/dashboard/Sidebar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -122,6 +123,7 @@ const items: NavEntry[] = [
   { to: "/portal/whatsapp/messages",   label: "Messages",  icon: <MessageSquare className="h-4 w-4" /> },
   { section: "Account" },
   { to: "/portal/billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
+  { to: "/portal/costs", label: "Cost", icon: <Wallet className="h-4 w-4" /> },
   { to: "/portal/settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
 ];
 
