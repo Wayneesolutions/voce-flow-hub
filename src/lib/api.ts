@@ -11,6 +11,7 @@ import type {
   AdminStats,
   AdminBillingSummary,
   BillingSummary,
+  CostSummary,
   CallStats,
   LeadStatus,
 } from "./types";
@@ -290,6 +291,18 @@ export const adminNumbersApi = {
   }): Promise<TenantPhone> =>
     adminHttp.post("/admin/numbers/buy", data).then((r) => r.data),
 
+  update: (
+    tenantId: string,
+    numberId: string,
+    data: {
+      isDefault?: boolean;
+      isActive?: boolean;
+      isCallbackNumber?: boolean;
+      telephonyCostPerMinute?: number | null;
+    }
+  ): Promise<TenantPhone> =>
+    adminHttp.patch(`/admin/tenants/${tenantId}/numbers/${numberId}`, data).then((r) => r.data),
+
   remove: (numberId: string): Promise<void> =>
     adminHttp.delete(`/admin/numbers/${numberId}`).then((r) => r.data),
 };
@@ -340,6 +353,13 @@ export const registerApi = {
 export const callStatsApi = {
   get: (params?: { from?: string; to?: string }): Promise<CallStats> =>
     http.get("/calls/stats", { params }).then((r) => r.data),
+};
+
+// ── Client portal: Real vendor cost breakdown (Cost dashboard) ───────────────
+
+export const costsApi = {
+  get: (params?: { from?: string; to?: string }): Promise<CostSummary> =>
+    http.get("/calls/costs", { params }).then((r) => r.data),
 };
 
 // ── Client portal: Leads ──────────────────────────────────────────────────────

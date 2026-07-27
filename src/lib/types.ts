@@ -180,6 +180,27 @@ export interface BillingSummary {
   period: { from: string; to: string };
 }
 
+// Real vendor cost breakdown (Twilio/Plivo + Vapi + Deepgram + OpenAI + ElevenLabs) —
+// internal cost visibility, separate from BillingSummary (what the client is charged).
+export interface CostSummary {
+  period: { from: string; to: string };
+  totalCalls: number;
+  byVendor: {
+    telephony: number;
+    vapi: number;
+    stt: number;
+    llm: number;
+    tts: number;
+  };
+  totalCost: number;
+  totalBilled: number;
+  grossMargin: number;
+  byCountry: { country: string; calls: number; cost: number }[];
+  costPerCall: number;
+  bookedMeetings: number;
+  costPerBookedMeeting: number | null;
+}
+
 // ── Admin types ─────────────────────────────────────────────────────────────
 
 export interface TenantPhone {
@@ -194,6 +215,12 @@ export interface TenantPhone {
   vapiNumberId?: string | null;
   isDefault: boolean;
   isActive: boolean;
+  // If true, genuine callback leads (real requested-time callback) for this number's
+  // country are dialed from this number instead of the default cold-outreach number.
+  isCallbackNumber: boolean;
+  // Real per-connected-minute telephony cost for this number/provider, used for cost
+  // reporting only (e.g. Twilio CA ~0.014, Plivo IN domestic ~0.0055).
+  telephonyCostPerMinute?: number | null;
   createdAt: string;
   tenant?: { id: string; name: string };
 }
