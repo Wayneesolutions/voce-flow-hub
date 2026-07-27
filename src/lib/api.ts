@@ -699,11 +699,16 @@ export interface InboundPhoneNumber {
   phoneNumber: string;
   country:     string;
   twilioSid:   string | null;
+  plivoUuid:   string | null;
   vapiPhoneId: string | null;
   provider:    string;
   isActive:    boolean;
   createdAt:   string;
   assistants?: { id: string; agentName: string; status: string }[];
+  // Set if this inbound number is the same physical number already used for
+  // outbound calling (see /link-outbound) rather than a separately imported one.
+  linkedTenantPhoneId?: string | null;
+  linkedTenantPhone?: { id: string; number: string; friendlyName: string } | null;
 }
 
 export interface AvailableInboundNumber {
@@ -712,6 +717,16 @@ export interface AvailableInboundNumber {
   locality:     string;
   region:       string;
   postalCode:   string | null;
+}
+
+// A tenant's own outbound (TenantPhone) number not yet linked to an inbound number —
+// candidates for "use this same number for inbound too".
+export interface OutboundNumberCandidate {
+  id: string;
+  number: string;
+  friendlyName: string;
+  country: string;
+  provider: string;
 }
 
 export const inboundPhoneApi = {
@@ -724,8 +739,23 @@ export const inboundPhoneApi = {
   buy: (params: { phoneNumber: string; country?: string }): Promise<InboundPhoneNumber> =>
     http.post('/inbound/phone-numbers/buy', params).then((r) => r.data),
 
-  import: (params: { phoneNumber: string; twilioSid: string; country?: string }): Promise<InboundPhoneNumber> =>
+  import: (params: {
+    phoneNumber: string;
+    provider?: "twilio" | "plivo";
+    twilioSid?: string;
+    plivoUuid?: string;
+    country?: string;
+  }): Promise<InboundPhoneNumber> =>
     http.post('/inbound/phone-numbers/import', params).then((r) => r.data),
+
+  outboundCandidates: (): Promise<OutboundNumberCandidate[]> =>
+    http.get('/inbound/phone-numbers/outbound-candidates').then((r) => r.data),
+
+  // Reuse a number already registered with Vapi for outbound calling as an inbound
+  // number too, without re-importing it into Vapi (which would fail — Vapi treats a
+  // phone number as one unique resource).
+  linkOutbound: (tenantPhoneId: string): Promise<InboundPhoneNumber> =>
+    http.post('/inbound/phone-numbers/link-outbound', { tenantPhoneId }).then((r) => r.data),
 
   remove: (id: string): Promise<void> =>
     http.delete(`/inbound/phone-numbers/${id}`).then((r) => r.data),

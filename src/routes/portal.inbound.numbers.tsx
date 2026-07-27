@@ -6,8 +6,9 @@ import {
   inboundPhoneApi,
   type InboundPhoneNumber,
   type AvailableInboundNumber,
+  type OutboundNumberCandidate,
 } from "@/lib/api";
-import { Hash, Plus, Search, Trash2, Loader2, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { Hash, Plus, Search, Trash2, Loader2, AlertTriangle, CheckCircle2, X, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/inbound/numbers")({
@@ -19,6 +20,7 @@ function NumbersPage() {
   const qc = useQueryClient();
   const [showSearch, setShowSearch]     = useState(false);
   const [showImport, setShowImport]     = useState(false);
+  const [showLink, setShowLink]         = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Search state
@@ -29,13 +31,24 @@ function NumbersPage() {
   const [searching, setSearching]           = useState(false);
 
   // Import state
+  const [importProvider, setImportProvider] = useState<"twilio" | "plivo">("twilio");
   const [importPhone, setImportPhone] = useState("");
   const [importSid, setImportSid]     = useState("");
+  const [importPlivoUuid, setImportPlivoUuid] = useState("");
   const [importCountry, setImportCountry] = useState("CA");
+
+  // Link-existing-outbound-number state
+  const [linkTenantPhoneId, setLinkTenantPhoneId] = useState("");
 
   const { data: numbers = [], isLoading } = useQuery({
     queryKey: ["inbound-numbers"],
     queryFn: inboundPhoneApi.list,
+  });
+
+  const { data: outboundCandidates = [] } = useQuery<OutboundNumberCandidate[]>({
+    queryKey: ["outbound-candidates"],
+    queryFn: inboundPhoneApi.outboundCandidates,
+    enabled: showLink,
   });
 
   const buyMutation = useMutation({
@@ -50,14 +63,32 @@ function NumbersPage() {
   });
 
   const importMutation = useMutation({
-    mutationFn: () => inboundPhoneApi.import({ phoneNumber: importPhone, twilioSid: importSid, country: importCountry }),
+    mutationFn: () => inboundPhoneApi.import({
+      phoneNumber: importPhone,
+      provider: importProvider,
+      twilioSid: importProvider === "twilio" ? importSid : undefined,
+      plivoUuid: importProvider === "plivo" ? importPlivoUuid : undefined,
+      country: importCountry,
+    }),
     onSuccess: () => {
       toast.success("Number imported");
       qc.invalidateQueries({ queryKey: ["inbound-numbers"] });
       setShowImport(false);
-      setImportPhone(""); setImportSid(""); setImportCountry("CA");
+      setImportPhone(""); setImportSid(""); setImportPlivoUuid(""); setImportCountry("CA");
     },
-    onError: () => toast.error("Failed to import number"),
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to import number"),
+  });
+
+  const linkMutation = useMutation({
+    mutationFn: () => inboundPhoneApi.linkOutbound(linkTenantPhoneId),
+    onSuccess: () => {
+      toast.success("Outbound number connected for inbound too");
+      qc.invalidateQueries({ queryKey: ["inbound-numbers"] });
+      qc.invalidateQueries({ queryKey: ["outbound-candidates"] });
+      setShowLink(false);
+      setLinkTenantPhoneId("");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? "Failed to connect number"),
   });
 
   const deleteMutation = useMutation({
@@ -95,16 +126,22 @@ function NumbersPage() {
         {/* Actions */}
         <div className="flex gap-2 flex-wrap">
           <button
-            onClick={() => { setShowSearch(true); setShowImport(false); }}
+            onClick={() => { setShowSearch(true); setShowImport(false); setShowLink(false); }}
             className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
           >
             <Search className="h-4 w-4" /> Search Available Numbers
           </button>
           <button
-            onClick={() => { setShowImport(true); setShowSearch(false); }}
+            onClick={() => { setShowImport(true); setShowSearch(false); setShowLink(false); }}
             className="inline-flex items-center gap-2 h-9 px-4 rounded-md border border-border text-sm font-medium hover:bg-secondary"
           >
             <Plus className="h-4 w-4" /> Import Existing Number
+          </button>
+          <button
+            onClick={() => { setShowLink(true); setShowSearch(false); setShowImport(false); }}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-md border border-border text-sm font-medium hover:bg-secondary"
+          >
+            <Link2 className="h-4 w-4" /> Use an Outbound Number for Inbound
           </button>
         </div>
 
@@ -165,15 +202,39 @@ function NumbersPage() {
               <h3 className="font-semibold text-sm">Import Existing Number</h3>
               <button onClick={() => setShowImport(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
             </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Provider</label>
+              <div className="mt-1 flex gap-2">
+                <button
+                  onClick={() => setImportProvider("twilio")}
+                  className={`h-9 px-4 rounded-md text-sm font-medium border ${importProvider === "twilio" ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-secondary"}`}
+                >
+                  Twilio
+                </button>
+                <button
+                  onClick={() => setImportProvider("plivo")}
+                  className={`h-9 px-4 rounded-md text-sm font-medium border ${importProvider === "plivo" ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-secondary"}`}
+                >
+                  Plivo
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Phone Number (E.164)</label>
                 <input value={importPhone} onChange={(e) => setImportPhone(e.target.value)} placeholder="+14161234567" className="mt-1 w-full h-9 rounded-md border border-border bg-background px-3 text-sm" />
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Twilio SID</label>
-                <input value={importSid} onChange={(e) => setImportSid(e.target.value)} placeholder="PN..." className="mt-1 w-full h-9 rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
+              {importProvider === "twilio" ? (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Twilio SID</label>
+                  <input value={importSid} onChange={(e) => setImportSid(e.target.value)} placeholder="PN..." className="mt-1 w-full h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Plivo Number UUID</label>
+                  <input value={importPlivoUuid} onChange={(e) => setImportPlivoUuid(e.target.value)} placeholder="e.g. +919820000000" className="mt-1 w-full h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Country</label>
                 <select value={importCountry} onChange={(e) => setImportCountry(e.target.value)} className="mt-1 w-full h-9 rounded-md border border-border bg-background px-3 text-sm">
@@ -185,11 +246,57 @@ function NumbersPage() {
             </div>
             <button
               onClick={() => importMutation.mutate()}
-              disabled={!importPhone || !importSid || importMutation.isPending}
+              disabled={!importPhone || (importProvider === "twilio" ? !importSid : !importPlivoUuid) || importMutation.isPending}
               className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60 flex items-center gap-2"
             >
               {importMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing…</> : "Import Number"}
             </button>
+          </div>
+        )}
+
+        {/* Link an existing outbound number panel */}
+        {showLink && (
+          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Use an Outbound Number for Inbound Too</h3>
+              <button onClick={() => setShowLink(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Reuses a number already set up for outbound calling (e.g. the callback business number) so people
+              calling it back reach your AI receptionist. This does not create a new number — it connects the same
+              one Vapi already knows about.
+            </p>
+            {outboundCandidates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No eligible outbound numbers found — all of your outbound numbers are either already connected for
+                inbound, or not yet registered with Vapi.
+              </p>
+            ) : (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Outbound number</label>
+                  <select
+                    value={linkTenantPhoneId}
+                    onChange={(e) => setLinkTenantPhoneId(e.target.value)}
+                    className="mt-1 w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="">— Select a number —</option>
+                    {outboundCandidates.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.number} — {c.friendlyName} ({c.country} · {c.provider})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => linkMutation.mutate()}
+                  disabled={!linkTenantPhoneId || linkMutation.isPending}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60 flex items-center gap-2"
+                >
+                  {linkMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Connecting…</> : <><Link2 className="h-4 w-4" /> Connect for Inbound</>}
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -214,7 +321,14 @@ function NumbersPage() {
                     <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
                       <div className="font-mono text-sm font-medium">{num.phoneNumber}</div>
-                      <div className="text-xs text-muted-foreground">{num.country} · {num.provider}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        {num.country} · {num.provider}
+                        {num.linkedTenantPhone && (
+                          <span className="inline-flex items-center gap-1 text-accent">
+                            <Link2 className="h-3 w-3" /> also used for outbound
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
