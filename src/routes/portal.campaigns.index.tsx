@@ -504,12 +504,13 @@ function CampaignProgress({
   const totalCalls = c._count?.calls ?? 0;
   const pct        = totalLeads > 0 ? Math.min(100, Math.round((totalCalls / totalLeads) * 100)) : 0;
   const remaining  = Math.max(0, totalLeads - totalCalls);
-  const outcomes   = c.outcomeCounts ?? {};
+  const outcomes     = c.outcomeCounts ?? {};
+  const leadStatuses = (c as any).leadStatusCounts ?? {};
   const booked     = outcomes.BOOKED         ?? 0;
   const voicemail  = outcomes.VOICEMAIL      ?? 0;
   const noAnswer   = outcomes.NO_ANSWER      ?? 0;
   const notInt     = outcomes.NOT_INTERESTED ?? 0;
-  const callback   = outcomes.CALLBACK       ?? 0;
+  const callback   = leadStatuses.CALLBACK   ?? 0;
 
   const retryVoicemailMut = useMutation({
     mutationFn: () => campaignsApi.retryOutcome(c.id, "VOICEMAIL"),
